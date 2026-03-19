@@ -1,0 +1,27 @@
+echo "🔍 Running lint and build checks..."
+
+# Lint API
+echo "→ Linting API..."
+cd api && npm run lint && cd ..
+
+# Lint Web
+echo "→ Linting Web..."
+cd web && npm run lint && cd ..
+
+# Build API
+echo "→ Building API..."
+cd api && npm run build && cd ..
+
+# Build Web
+echo "→ Building Web..."
+cd web && npm run build && cd ..
+
+# Unit tests API
+echo "→ Running API unit tests..."
+cd api && npm run test && cd ..
+
+# E2E tests API
+echo "→ Running API E2E tests..."
+cd api && npm run test:e2e && cd ..
+
+echo "✅ All checks passed!"
