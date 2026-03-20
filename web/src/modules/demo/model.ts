@@ -27,6 +27,8 @@ export interface DemoRound {
   scoreCT: number;
   scoreT: number;
   totalFrames: number;
+  freezeEndTick?: number;
+  roundTimeSeconds?: number;
 }
 
 export interface FramePlayer {

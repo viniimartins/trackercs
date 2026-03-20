@@ -32,7 +32,7 @@ export function usePlaybackLoop(frames: DemoFrame[]) {
     }
 
     const delta = time - lastTimeRef.current;
-    const interval = 1000 / (32 * speedRef.current);
+    const interval = 1000 / (16 * speedRef.current);
 
     if (delta >= interval) {
       nextFrameRef.current();

@@ -3,7 +3,7 @@ import { usePlaybackStore } from '@/stores/playback-store';
 import { useRadarFullscreenStore } from '@/stores/radar-fullscreen-store';
 
 const SPEED_OPTIONS = [0.25, 0.5, 1, 2, 4];
-const SKIP_FRAMES = 160;
+const SKIP_FRAMES = 80;
 
 export function useKeyboardShortcuts() {
   useEffect(() => {

@@ -1,15 +1,10 @@
 'use client';
 
-import {
-  Shield,
-  ShieldCheck,
-  Eye,
-  Wrench,
-  CircleDot,
-} from 'lucide-react';
+import { Shield, ShieldCheck } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSpectatorStore } from '@/stores/spectator-store';
 import { getWeaponImagePath } from '../_utils/format-weapon';
+import { cn } from '@/lib/utils';
 import type { DemoFrame, FramePlayer, PlayerStats } from '@/modules/demo/model';
 
 interface PlayerHudPanelProps {
@@ -27,67 +22,33 @@ export function PlayerHudPanel({ frame, stats }: PlayerHudPanelProps) {
   return (
     <aside className="flex flex-col shrink-0 overflow-hidden">
       <ScrollArea className="flex-1 min-h-0">
-        <TeamRoster
-          label="CT"
-          color="blue"
-          players={ctPlayers}
-          stats={stats}
-          selectedSteamId={selectedSteamId}
-          onSelect={setSelected}
-        />
-        <TeamRoster
-          label="T"
-          color="yellow"
-          players={tPlayers}
-          stats={stats}
-          selectedSteamId={selectedSteamId}
-          onSelect={setSelected}
-        />
-      </ScrollArea>
-    </aside>
-  );
-}
-
-function TeamRoster({
-  label,
-  color,
-  players,
-  stats,
-  selectedSteamId,
-  onSelect,
-}: {
-  label: string;
-  color: 'blue' | 'yellow';
-  players: FramePlayer[];
-  stats?: PlayerStats[];
-  selectedSteamId: string | null;
-  onSelect: (steamId: string | null) => void;
-}) {
-  const textColor = color === 'blue' ? 'text-blue-400' : 'text-yellow-400';
-
-  return (
-    <div className="px-2 py-1.5">
-      <p
-        className={`text-[10px] font-semibold uppercase tracking-wider ${textColor} px-1 mb-0.5`}
-      >
-        {label}
-      </p>
-      <div className="space-y-0.5">
-        {players.map((player) => {
-          const isSelected = player.steamId === selectedSteamId;
-          return (
+        <div className="px-1.5 py-1 space-y-px">
+          {ctPlayers.map((player) => (
             <PlayerRow
               key={player.steamId}
               player={player}
               playerStats={stats?.find((s) => s.steamId === player.steamId)}
-              teamColor={color}
-              isSelected={isSelected}
-              onSelect={onSelect}
+              teamColor="blue"
+              isSelected={player.steamId === selectedSteamId}
+              onSelect={setSelected}
             />
-          );
-        })}
-      </div>
-    </div>
+          ))}
+        </div>
+        <div className="h-2" />
+        <div className="px-1.5 py-1 space-y-px">
+          {tPlayers.map((player) => (
+            <PlayerRow
+              key={player.steamId}
+              player={player}
+              playerStats={stats?.find((s) => s.steamId === player.steamId)}
+              teamColor="yellow"
+              isSelected={player.steamId === selectedSteamId}
+              onSelect={setSelected}
+            />
+          ))}
+        </div>
+      </ScrollArea>
+    </aside>
   );
 }
 
@@ -104,108 +65,111 @@ function PlayerRow({
   isSelected: boolean;
   onSelect: (steamId: string | null) => void;
 }) {
-  const nameColor =
-    teamColor === 'blue' ? 'text-blue-400' : 'text-yellow-400';
+  const hpColor =
+    player.health > 50
+      ? 'text-white'
+      : player.health > 25
+        ? 'text-yellow-400'
+        : 'text-red-400';
+
   const moneyColor =
     player.money >= 4000
       ? 'text-green-400'
       : player.money >= 2000
         ? 'text-yellow-400'
         : 'text-red-400';
-  const hpBarColor =
-    player.health > 50
-      ? 'bg-green-500'
-      : player.health > 25
-        ? 'bg-yellow-500'
-        : 'bg-red-500';
+
+  const hpBarBg = teamColor === 'blue' ? 'bg-blue-500' : 'bg-yellow-500';
+  const sideBarColor = teamColor === 'blue' ? 'bg-blue-500' : 'bg-yellow-500';
 
   return (
     <button
       onClick={() => onSelect(isSelected ? null : player.steamId)}
-      className={`w-full px-1.5 py-1 rounded-sm text-left transition-colors ${
+      className={cn(
+        'relative w-full rounded-sm text-left transition-colors overflow-hidden',
         isSelected
-          ? 'bg-primary/15 ring-1 ring-primary/30'
-          : 'hover:bg-muted/40'
-      } ${!player.isAlive ? 'opacity-40' : ''}`}
+          ? 'ring-1 ring-white/10'
+          : 'hover:bg-white/[0.03]',
+        !player.isAlive && 'opacity-40',
+      )}
     >
-      {/* Line 1: name, status icons, money, KDA, weapon SVG */}
-      <div className="flex items-center gap-1">
+      {/* Side bar */}
+      <div className={cn('absolute inset-y-0 left-0 w-0.5', sideBarColor)} />
+
+      {/* HP bar as background */}
+      {player.isAlive && (
+        <div
+          className={cn(
+            'absolute inset-0 transition-all duration-300',
+            hpBarBg,
+            isSelected ? 'opacity-[0.25]' : 'opacity-[0.15]',
+          )}
+          style={{ width: `${player.health}%` }}
+        />
+      )}
+
+      <div className="relative flex items-center h-9 px-2 gap-1">
+        {/* HP number */}
         <span
-          className={`text-xs font-bold truncate min-w-0 ${nameColor}`}
+          className={cn(
+            'w-7 text-right text-xs font-bold tabular-nums shrink-0',
+            player.isAlive ? hpColor : 'text-muted-foreground',
+          )}
         >
+          {player.isAlive ? player.health : 0}
+        </span>
+
+        {/* Armor indicator */}
+        <span className="w-4 flex items-center justify-center shrink-0">
+          {player.isAlive && player.armor > 0 && (
+            player.hasHelmet ? (
+              <ShieldCheck className="size-3 text-muted-foreground/70" />
+            ) : (
+              <Shield className="size-3 text-muted-foreground/50" />
+            )
+          )}
+        </span>
+
+        {/* Weapon image */}
+        {player.isAlive && player.activeWeapon ? (
+          <div className="flex items-center justify-center w-[52px] h-5 shrink-0">
+            <img
+              src={getWeaponImagePath(player.activeWeapon)}
+              alt=""
+              className="h-5 w-auto max-w-[52px] brightness-0 invert opacity-70"
+              onError={(e) => {
+                e.currentTarget.src = '/weapons/knife.png';
+              }}
+            />
+          </div>
+        ) : (
+          <div className="w-[52px] h-5 shrink-0" />
+        )}
+
+        {/* Name */}
+        <span className="text-xs font-medium truncate flex-1 min-w-0 text-white">
           {player.name}
         </span>
 
-        {player.isAlive && (
-          <>
-            {player.isScoped && (
-              <Eye className="size-2.5 text-cyan-400 shrink-0" />
-            )}
-            {player.isDefusing && (
-              <Wrench className="size-2.5 text-green-400 shrink-0" />
-            )}
-            {player.hasDefuser && player.team === 'CT' && (
-              <CircleDot className="size-2.5 text-blue-400 shrink-0" />
-            )}
-          </>
+        {/* Defuser badge (CT only) */}
+        {player.isAlive && player.hasDefuser && player.team === 'CT' && (
+          <span className="text-[9px] text-blue-400/70 font-medium shrink-0">
+            D
+          </span>
         )}
 
-        <span className="flex-1" />
-
-        <span
-          className={`text-[10px] font-bold tabular-nums shrink-0 ${moneyColor}`}
-        >
+        {/* Money */}
+        <span className={cn('text-[10px] tabular-nums shrink-0', moneyColor)}>
           ${player.money}
         </span>
 
+        {/* KDA */}
         <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">
           {playerStats
             ? `${playerStats.kills}/${playerStats.deaths}/${playerStats.assists}`
             : `${player.killsTotal}/${player.deathsTotal}/${player.assistsTotal}`}
         </span>
-
-        {player.isAlive && player.activeWeapon && (
-          <img
-            src={getWeaponImagePath(player.activeWeapon)}
-            alt=""
-            className="h-5 w-auto brightness-0 invert opacity-70 shrink-0"
-            onError={(e) => {
-              e.currentTarget.src = '/weapons/knife.png';
-            }}
-          />
-        )}
       </div>
-
-      {/* Line 2: HP bar + armor OR "DEAD" */}
-      {player.isAlive ? (
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <div className="flex-1 h-1.5 bg-muted rounded-sm overflow-hidden">
-            <div
-              className={`h-full rounded-sm transition-all ${hpBarColor}`}
-              style={{ width: `${player.health}%` }}
-            />
-          </div>
-          <span className="text-[10px] font-bold tabular-nums w-7 text-right shrink-0">
-            {player.health}
-          </span>
-          <span className="text-[10px] tabular-nums text-muted-foreground flex items-center gap-0.5 shrink-0">
-            {player.hasHelmet ? (
-              <ShieldCheck className="size-2.5" />
-            ) : (
-              <Shield className="size-2.5" />
-            )}
-            {player.armor}
-          </span>
-          {playerStats && (
-            <span className="text-[10px] text-muted-foreground shrink-0">
-              ADR {Math.round(playerStats.adr)}
-            </span>
-          )}
-        </div>
-      ) : (
-        <p className="text-[10px] text-destructive/60 mt-0.5">DEAD</p>
-      )}
     </button>
   );
 }
-

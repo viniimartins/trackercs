@@ -109,6 +109,11 @@ export interface HeatmapData {
   gridSize: number;
 }
 
+export interface EventHighlightPos {
+  gameX: number;
+  gameY: number;
+}
+
 interface RenderOptions {
   grenades?: GrenadeEvent[];
   kills?: KillEvent[];
@@ -117,6 +122,7 @@ interface RenderOptions {
   transform?: RadarTransform;
   selectedSteamId?: string | null;
   heatmap?: HeatmapData | null;
+  eventHighlight?: EventHighlightPos | null;
 }
 
 export function useRadarRenderer() {
@@ -271,6 +277,12 @@ export function useRadarRenderer() {
         }
       }
 
+      // 6. Event highlight ring
+      if (options?.eventHighlight) {
+        const hp = gameToRadar(options.eventHighlight.gameX, options.eventHighlight.gameY, config);
+        drawEventHighlight(ctx, hp.x * scale, hp.y * scale, scale);
+      }
+
       if (t) ctx.restore();
     },
     [],
@@ -297,6 +309,49 @@ function drawSelectionRing(
   ctx.globalAlpha = 0.7 + Math.sin(Date.now() / 300) * 0.3;
   ctx.stroke();
   ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawEventHighlight(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale: number,
+) {
+  const now = Date.now();
+  const pulse = 1 + Math.sin(now / 250) * 0.2;
+  const baseRadius = 14 * scale;
+  const radius = baseRadius * pulse;
+  const alpha = 0.6 + Math.sin(now / 250) * 0.2;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.5 * scale;
+  ctx.stroke();
+
+  // Inner fill
+  ctx.globalAlpha = alpha * 0.15;
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  // Crosshair lines
+  ctx.globalAlpha = alpha * 0.5;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1 * scale;
+  const arm = radius + 4 * scale;
+  const gap = 5 * scale;
+  ctx.beginPath();
+  ctx.moveTo(x - arm, y); ctx.lineTo(x - gap, y);
+  ctx.moveTo(x + gap, y); ctx.lineTo(x + arm, y);
+  ctx.moveTo(x, y - arm); ctx.lineTo(x, y - gap);
+  ctx.moveTo(x, y + gap); ctx.lineTo(x, y + arm);
+  ctx.stroke();
+
   ctx.restore();
 }
 

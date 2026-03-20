@@ -4,34 +4,99 @@ import Link from 'next/link';
 import { ArrowLeft, Shield, Star } from 'lucide-react';
 import { usePlaybackStore } from '@/stores/playback-store';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import type { Demo, DemoRound, DemoFrame } from '@/modules/demo/model';
+
+const CS2_BOMB_TIMER_SECONDS = 40;
+
+type RoundPhase = 'freeze' | 'live' | 'planted' | 'ended';
+
+function getRoundPhase(
+  frame: DemoFrame | null,
+  round: DemoRound | undefined,
+  isBombPlanted: boolean,
+): RoundPhase {
+  if (!frame || !round) return 'freeze';
+  if (frame.tick >= round.endTick) return 'ended';
+  if (isBombPlanted) return 'planted';
+  const freezeEndTick = round.freezeEndTick ?? round.startTick;
+  if (frame.tick < freezeEndTick) return 'freeze';
+  return 'live';
+}
+
+function formatCountdown(totalSeconds: number): string {
+  const clamped = Math.max(0, Math.ceil(totalSeconds));
+  const minutes = Math.floor(clamped / 60);
+  const seconds = clamped % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function getTimerDisplay(
+  frame: DemoFrame | null,
+  round: DemoRound | undefined,
+  tickRate: number,
+  phase: RoundPhase,
+  bombPlantTick: number | null,
+): string {
+  if (!frame || !round || tickRate === 0) return '0:00';
+
+  const freezeEndTick = round.freezeEndTick ?? round.startTick;
+  const roundTimeSeconds = round.roundTimeSeconds ?? 115;
+
+  switch (phase) {
+    case 'freeze': {
+      const remainingTicks = freezeEndTick - frame.tick;
+      return formatCountdown(remainingTicks / tickRate);
+    }
+    case 'live': {
+      const elapsedSinceFreezeEnd = (frame.tick - freezeEndTick) / tickRate;
+      return formatCountdown(roundTimeSeconds - elapsedSinceFreezeEnd);
+    }
+    case 'planted': {
+      if (bombPlantTick === null) return '0:00';
+      const elapsed = (frame.tick - bombPlantTick) / tickRate;
+      const remaining = CS2_BOMB_TIMER_SECONDS - elapsed;
+      return formatCountdown(remaining);
+    }
+    case 'ended': {
+      // Freeze at 0:00
+      return '0:00';
+    }
+  }
+}
 
 interface ScoreboardProps {
   demo: Demo;
   rounds: DemoRound[];
   frame: DemoFrame | null;
+  bombPlantTick: number | null;
 }
 
-function formatRoundTime(frame: DemoFrame | null, round: DemoRound | undefined, tickRate: number) {
-  if (!frame || !round || tickRate === 0) return '0:00';
-  const elapsedTicks = frame.tick - round.startTick;
-  const elapsedSeconds = Math.max(0, Math.floor(elapsedTicks / tickRate));
-  const minutes = Math.floor(elapsedSeconds / 60);
-  const seconds = elapsedSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
-
-export function Scoreboard({ demo, rounds, frame }: ScoreboardProps) {
+export function Scoreboard({ demo, rounds, frame, bombPlantTick }: ScoreboardProps) {
   const currentRound = usePlaybackStore((s) => s.currentRound);
   const round = rounds.find((r) => r.roundNumber === currentRound);
 
+  const isBombPlanted = frame?.bomb?.state === 'planted' && bombPlantTick !== null;
+  const phase = getRoundPhase(frame, round, isBombPlanted);
+
   const scoreCT = round?.scoreCT ?? 0;
   const scoreT = round?.scoreT ?? 0;
-  const time = formatRoundTime(frame, round, demo.tickRate);
+  const time = getTimerDisplay(frame, round, demo.tickRate, phase, bombPlantTick);
+
+  const timerClassName = cn(
+    'text-sm font-bold tabular-nums',
+    phase === 'freeze' && 'text-yellow-400',
+    phase === 'live' && 'text-foreground',
+    phase === 'planted' && 'text-red-400 animate-pulse',
+    phase === 'ended' && 'text-muted-foreground',
+  );
 
   return (
     <div className="relative border-b border-border bg-card/50">
       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-yellow-500/5" />
+      {phase === 'planted' && (
+        <div className="absolute inset-0 bg-red-500/10 animate-pulse border-b border-red-500/30" />
+      )}
 
       <div className="relative flex items-center justify-between px-4 py-2">
         {/* Left — Back + map badge */}
@@ -61,7 +126,7 @@ export function Scoreboard({ demo, rounds, frame }: ScoreboardProps) {
             </span>
 
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-sm text-foreground font-bold tabular-nums">{time}</span>
+              <span className={timerClassName}>{time}</span>
               <span className="text-[11px] text-muted-foreground font-medium">
                 Round {currentRound}/{demo.totalRounds}
               </span>

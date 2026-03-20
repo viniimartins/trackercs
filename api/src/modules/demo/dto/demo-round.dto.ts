@@ -24,4 +24,10 @@ export class DemoRoundDto {
 
   @ApiProperty()
   totalFrames: number;
+
+  @ApiProperty()
+  freezeEndTick: number;
+
+  @ApiProperty()
+  roundTimeSeconds: number;
 }

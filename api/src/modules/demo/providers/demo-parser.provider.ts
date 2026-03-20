@@ -106,6 +106,7 @@ export class DemoParserProvider {
   parseRounds(buffer: Buffer): DemoRoundDto[] {
     let roundStarts: RoundEvent[] = [];
     let roundEnds: RoundEvent[] = [];
+    let roundFreezeEnds: RoundEvent[] = [];
 
     try {
       roundStarts = parseEvent(buffer, 'round_start') as RoundEvent[];
@@ -117,6 +118,11 @@ export class DemoParserProvider {
     } catch {
       this.logger.warn('No round_end events found');
     }
+    try {
+      roundFreezeEnds = parseEvent(buffer, 'round_freeze_end') as RoundEvent[];
+    } catch {
+      this.logger.warn('No round_freeze_end events found');
+    }
 
     const rounds: DemoRoundDto[] = [];
 
@@ -126,6 +132,20 @@ export class DemoParserProvider {
 
       const startTick = Number(start?.tick ?? 0);
       const endTick = end ? Number(end.tick) : (roundStarts[i + 1] ? Number(roundStarts[i + 1].tick) - 1 : startTick + 10000);
+
+      const roundTimeSeconds = Number(start?.['timelimit'] ?? 115);
+
+      // Find the matching round_freeze_end event (first one with tick > startTick and <= endTick)
+      const freezeEndEvent = roundFreezeEnds.find(
+        (e) => Number(e.tick) > startTick && Number(e.tick) <= endTick,
+      );
+      const freezeEndTick = freezeEndEvent ? Number(freezeEndEvent.tick) : startTick;
+
+      // Remove matched event so it's not reused for subsequent rounds
+      if (freezeEndEvent) {
+        const idx = roundFreezeEnds.indexOf(freezeEndEvent);
+        roundFreezeEnds.splice(idx, 1);
+      }
 
       const winnerNum = end ? Number(end['winner'] ?? 0) : 0;
       const reason = end ? String(end['reason'] ?? '') : undefined;
@@ -146,6 +166,8 @@ export class DemoParserProvider {
         scoreCT: 0,
         scoreT: 0,
         totalFrames: Math.max(totalFrames, 0),
+        freezeEndTick,
+        roundTimeSeconds,
       });
     }
 

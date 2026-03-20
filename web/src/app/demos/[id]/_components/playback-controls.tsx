@@ -26,10 +26,11 @@ import { Separator } from '@/components/ui/separator';
 import { useKeyboardShortcuts } from '../_hooks/use-keyboard-shortcuts';
 
 const SPEED_OPTIONS = [0.25, 0.5, 1, 2, 4];
-const SKIP_FRAMES = 160;
+const FRAMES_PER_SECOND = 16;
+const SKIP_FRAMES = 80;
 
-function formatFrameTime(frameIndex: number, tickRate = 32): string {
-  const totalSeconds = Math.floor(frameIndex / tickRate);
+function formatFrameTime(frameIndex: number, fps = FRAMES_PER_SECOND): string {
+  const totalSeconds = Math.floor(frameIndex / fps);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, '0')}`;

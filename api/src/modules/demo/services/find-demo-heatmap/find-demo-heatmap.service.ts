@@ -2,9 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import type { DemoRoundDto } from '../../dto/demo-round.dto.js';
-import type { DemoFrameDto } from '../../dto/demo-frame.dto.js';
 import type { KillEventDto } from '../../dto/demo-events.dto.js';
+import type { DemoFrameDto } from '../../dto/demo-frame.dto.js';
+import type { DemoRoundDto } from '../../dto/demo-round.dto.js';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data', 'demos');
 const GRID_SIZE = 64;

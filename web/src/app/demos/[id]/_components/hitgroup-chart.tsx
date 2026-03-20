@@ -64,29 +64,33 @@ export function HitgroupChart({ damages, selectedSteamId }: HitgroupChartProps) 
 
   const maxGiven = Math.max(...given.values(), 1);
   const maxReceived = Math.max(...received.values(), 1);
+  const showReceived = selectedSteamId && received.size > 0;
 
   return (
-    <div className="p-4 flex gap-8 items-start">
-      {/* Body silhouette - Given */}
-      <div className="flex-1">
-        <p className="text-xs text-muted-foreground mb-2 text-center uppercase tracking-wider">
-          Damage Given
-        </p>
-        <BodySilhouette data={given} maxValue={maxGiven} />
+    <div className="p-3">
+      {/* Silhouettes — stacked vertically */}
+      <div className="flex flex-col gap-4">
+        <div>
+          <div className="flex items-center gap-2 px-1 py-1.5">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Damage Given</span>
+            <div className="flex-1 h-px bg-border/50" />
+          </div>
+          <BodySilhouette data={given} maxValue={maxGiven} />
+        </div>
+
+        {showReceived && (
+          <div>
+            <div className="flex items-center gap-2 px-1 py-1.5">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Damage Received</span>
+              <div className="flex-1 h-px bg-border/50" />
+            </div>
+            <BodySilhouette data={received} maxValue={maxReceived} />
+          </div>
+        )}
       </div>
 
-      {/* Body silhouette - Received */}
-      {selectedSteamId && received.size > 0 && (
-        <div className="flex-1">
-          <p className="text-xs text-muted-foreground mb-2 text-center uppercase tracking-wider">
-            Damage Received
-          </p>
-          <BodySilhouette data={received} maxValue={maxReceived} />
-        </div>
-      )}
-
       {/* Legend */}
-      <div className="flex flex-col gap-1.5 pt-6">
+      <div className="flex flex-col gap-1.5 mt-4">
         {Object.entries(HITGROUP_LABELS)
           .filter(([key]) => Number(key) > 0)
           .map(([key, label]) => {
@@ -99,12 +103,12 @@ export function HitgroupChart({ damages, selectedSteamId }: HitgroupChartProps) 
                   className="size-2.5 rounded-full"
                   style={{ backgroundColor: HITGROUP_COLORS[hg] }}
                 />
-                <span className="text-[10px] text-muted-foreground w-16">{label}</span>
-                <span className="text-[10px] tabular-nums font-medium w-10 text-right">
+                <span className="text-[10px] text-muted-foreground w-14">{label}</span>
+                <span className="text-[10px] tabular-nums font-medium w-8 text-right">
                   {givenVal}
                 </span>
                 {selectedSteamId && (
-                  <span className="text-[10px] tabular-nums text-muted-foreground w-10 text-right">
+                  <span className="text-[10px] tabular-nums text-muted-foreground w-8 text-right">
                     {receivedVal}
                   </span>
                 )}
@@ -124,7 +128,7 @@ function BodySilhouette({
   maxValue: number;
 }) {
   return (
-    <svg viewBox="0 0 200 320" className="w-full max-w-[160px] mx-auto">
+    <svg viewBox="0 0 200 320" className="w-full max-w-[120px] mx-auto">
       {/* Body outline */}
       <g stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" fill="none">
         {/* Head */}

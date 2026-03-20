@@ -1,16 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArrowUpDown } from 'lucide-react';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import type { PlayerStats } from '@/modules/demo/model';
 
@@ -53,11 +43,6 @@ interface StatsTableProps {
   stats: PlayerStats[];
 }
 
-function getBarWidth(value: number, max: number) {
-  if (max === 0) return 0;
-  return (value / max) * 100;
-}
-
 export function StatsTable({ stats }: StatsTableProps) {
   return (
     <Tabs defaultValue="overview">
@@ -66,16 +51,16 @@ export function StatsTable({ stats }: StatsTableProps) {
         <TabsTrigger value="advanced">Advanced</TabsTrigger>
       </TabsList>
       <TabsContent value="overview">
-        <StatsTableInner stats={stats} columns={OVERVIEW_COLUMNS} />
+        <StatsCards stats={stats} columns={OVERVIEW_COLUMNS} />
       </TabsContent>
       <TabsContent value="advanced">
-        <StatsTableInner stats={stats} columns={ADVANCED_COLUMNS} />
+        <StatsCards stats={stats} columns={ADVANCED_COLUMNS} />
       </TabsContent>
     </Tabs>
   );
 }
 
-function StatsTableInner({ stats, columns }: { stats: PlayerStats[]; columns: Column[] }) {
+function StatsCards({ stats, columns }: { stats: PlayerStats[]; columns: Column[] }) {
   const [sortKey, setSortKey] = useState<NumericStatsKey>(columns[0].key);
   const [sortDesc, setSortDesc] = useState(true);
 
@@ -87,6 +72,8 @@ function StatsTableInner({ stats, columns }: { stats: PlayerStats[]; columns: Co
       setSortDesc(true);
     }
   };
+
+  const invertedKeys = new Set<NumericStatsKey>(['deaths', 'firstDeaths']);
 
   const ctPlayers = useMemo(
     () =>
@@ -108,17 +95,8 @@ function StatsTableInner({ stats, columns }: { stats: PlayerStats[]; columns: Co
     [stats, sortKey, sortDesc],
   );
 
-  const maxValues = useMemo(() => {
-    const max: Partial<Record<NumericStatsKey, number>> = {};
-    for (const col of columns) {
-      max[col.key] = Math.max(...stats.map((p) => p[col.key]), 1);
-    }
-    return max;
-  }, [stats, columns]);
-
   const bestInTeam = useMemo(() => {
     const best: Record<string, Record<string, number>> = { CT: {}, T: {} };
-    const invertedKeys = new Set<NumericStatsKey>(['deaths', 'firstDeaths']);
     for (const col of columns) {
       if (invertedKeys.has(col.key)) continue;
       const ctMax = Math.max(...ctPlayers.map((p) => p[col.key]), -Infinity);
@@ -129,92 +107,108 @@ function StatsTableInner({ stats, columns }: { stats: PlayerStats[]; columns: Co
     return best;
   }, [ctPlayers, tPlayers, columns]);
 
-  const invertedKeys = new Set<NumericStatsKey>(['deaths', 'firstDeaths']);
+  const isBestKey = (player: PlayerStats, key: NumericStatsKey) =>
+    !invertedKeys.has(key) && player[key] === bestInTeam[player.team]?.[key] && player[key] > 0;
 
-  const headerRow = (
-    <TableRow className="border-b-border/50 hover:bg-transparent">
-      <TableHead className="w-[140px] text-xs">Player</TableHead>
-      {columns.map((col) => (
-        <TableHead
-          key={col.key}
-          className="text-center text-xs cursor-pointer hover:text-foreground transition-colors"
-          onClick={() => handleSort(col.key)}
-        >
-          <span className="inline-flex items-center gap-1">
+  return (
+    <div className="flex flex-col gap-3 p-2">
+      {/* Sort labels */}
+      <div className="flex flex-wrap gap-1 px-1">
+        {columns.map((col) => (
+          <button
+            key={col.key}
+            onClick={() => handleSort(col.key)}
+            className={`text-[9px] uppercase px-1.5 py-0.5 rounded transition-colors ${
+              sortKey === col.key
+                ? 'text-primary bg-primary/10 font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             {col.label}
-            <ArrowUpDown className={`size-3 ${sortKey === col.key ? 'text-primary' : 'text-muted-foreground/50'}`} />
+          </button>
+        ))}
+      </div>
+
+      {/* CT team */}
+      <div>
+        <div className="flex items-center gap-2 px-1 py-1.5">
+          <span className="text-[10px] text-blue-400 uppercase tracking-wider font-semibold">
+            Counter-Terrorists
           </span>
-        </TableHead>
-      ))}
-    </TableRow>
+          <div className="flex-1 h-px bg-border/50" />
+        </div>
+        <div className="p-1.5 space-y-1">
+          {ctPlayers.map((player) => (
+            <PlayerStatCard
+              key={player.steamId}
+              player={player}
+              columns={columns}
+              isBest={isBestKey}
+              sortKey={sortKey}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* T team */}
+      <div>
+        <div className="flex items-center gap-2 px-1 py-1.5">
+          <span className="text-[10px] text-yellow-400 uppercase tracking-wider font-semibold">
+            Terrorists
+          </span>
+          <div className="flex-1 h-px bg-border/50" />
+        </div>
+        <div className="p-1.5 space-y-1">
+          {tPlayers.map((player) => (
+            <PlayerStatCard
+              key={player.steamId}
+              player={player}
+              columns={columns}
+              isBest={isBestKey}
+              sortKey={sortKey}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
+}
 
-  const renderRow = (player: PlayerStats, teamColor: string, team: string) => {
-    const isBestKey = (key: NumericStatsKey) =>
-      !invertedKeys.has(key) && player[key] === bestInTeam[team]?.[key] && player[key] > 0;
-
-    return (
-      <TableRow key={player.steamId} className="border-b-border/30">
-        <TableCell>
-          <span className="text-xs font-medium">{player.name}</span>
-        </TableCell>
+function PlayerStatCard({
+  player,
+  columns,
+  isBest,
+  sortKey,
+}: {
+  player: PlayerStats;
+  columns: Column[];
+  isBest: (player: PlayerStats, key: NumericStatsKey) => boolean;
+  sortKey: NumericStatsKey;
+}) {
+  return (
+    <div className="rounded px-2 py-1.5 hover:bg-muted/40 transition-colors">
+      <p className="text-xs font-bold mb-1 truncate">{player.name}</p>
+      <div className="grid grid-cols-4 gap-x-2 gap-y-0.5">
         {columns.map((col) => {
           const value = player[col.key];
           const formatted = col.format ? col.format(value) : String(value);
-          const barW = getBarWidth(value, maxValues[col.key] ?? 1);
-          const isHighlight = col.key === 'kd' || col.key === 'adr' || col.key === 'rating';
-          const isBest = isBestKey(col.key);
+          const best = isBest(player, col.key);
 
           return (
-            <TableCell key={col.key} className="text-center">
-              <div className="relative flex items-center justify-center">
-                {isHighlight && (
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-sm opacity-15"
-                    style={{
-                      width: `${barW}%`,
-                      backgroundColor: teamColor,
-                    }}
-                  />
-                )}
-                <span className={`relative text-xs tabular-nums ${
-                  isBest ? 'text-primary font-bold' :
-                  sortKey === col.key ? 'text-foreground font-semibold' : 'text-muted-foreground'
-                }`}>
-                  {formatted}
-                </span>
-              </div>
-            </TableCell>
+            <div key={col.key}>
+              <p className={`text-[9px] uppercase leading-tight ${
+                sortKey === col.key ? 'text-primary font-semibold' : 'text-muted-foreground'
+              }`}>
+                {col.label}
+              </p>
+              <p className={`text-xs tabular-nums ${
+                best ? 'text-primary font-bold' : 'font-semibold'
+              }`}>
+                {formatted}
+              </p>
+            </div>
           );
         })}
-      </TableRow>
-    );
-  };
-
-  return (
-    <div className="flex flex-col gap-3 p-3 overflow-auto">
-      <div className="rounded-lg overflow-hidden ring-1 ring-blue-500/20 bg-card/50">
-        <div className="bg-blue-950/40 px-3 py-1.5 flex items-center gap-2">
-          <Badge variant="outline" className="text-blue-400 border-blue-500/30 text-[10px] uppercase tracking-wider">
-            Counter-Terrorists
-          </Badge>
-        </div>
-        <Table>
-          <TableHeader>{headerRow}</TableHeader>
-          <TableBody>{ctPlayers.map((p) => renderRow(p, '#3b82f6', 'CT'))}</TableBody>
-        </Table>
-      </div>
-
-      <div className="rounded-lg overflow-hidden ring-1 ring-yellow-500/20 bg-card/50">
-        <div className="bg-yellow-950/40 px-3 py-1.5 flex items-center gap-2">
-          <Badge variant="outline" className="text-yellow-400 border-yellow-500/30 text-[10px] uppercase tracking-wider">
-            Terrorists
-          </Badge>
-        </div>
-        <Table>
-          <TableHeader>{headerRow}</TableHeader>
-          <TableBody>{tPlayers.map((p) => renderRow(p, '#eab308', 'T'))}</TableBody>
-        </Table>
       </div>
     </div>
   );

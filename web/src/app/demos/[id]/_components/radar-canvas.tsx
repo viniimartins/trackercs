@@ -5,8 +5,8 @@ import { useMountEffect } from '@/hooks/use-mount-effect';
 import { useRadarRenderer, MAP_CONFIGS, gameToRadar } from '../_hooks/use-radar-renderer';
 import { useRadarLayersStore } from '@/stores/radar-layers-store';
 import { useSpectatorStore } from '@/stores/spectator-store';
+import { useEventHighlightStore } from '@/stores/event-highlight-store';
 import { RadarLayerControls } from './radar-layer-controls';
-import { Card } from '@/components/ui/card';
 import { useRadarFullscreenStore } from '@/stores/radar-fullscreen-store';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import type { DemoFrame, GrenadeEvent, KillEvent, DamageEvent } from '@/modules/demo/model';
@@ -21,9 +21,10 @@ interface RadarCanvasProps {
   kills?: KillEvent[];
   damages?: DamageEvent[];
   heatmap?: HeatmapData | null;
+  footer?: React.ReactNode;
 }
 
-export function RadarCanvas({ mapName, frame, grenades, kills, damages, heatmap }: RadarCanvasProps) {
+export function RadarCanvas({ mapName, frame, grenades, kills, damages, heatmap, footer }: RadarCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { render } = useRadarRenderer();
   const isFullscreen = useRadarFullscreenStore((s) => s.isFullscreen);
@@ -57,6 +58,7 @@ export function RadarCanvas({ mapName, frame, grenades, kills, damages, heatmap 
     if (!ctx) return;
     const layers = useRadarLayersStore.getState();
     const selectedSteamId = useSpectatorStore.getState().selectedSteamId;
+    const eventHighlight = useEventHighlightStore.getState().highlight;
     renderRef.current(ctx, canvas, mapNameRef.current, frameRef.current, {
       grenades: grenadesRef.current,
       kills: killsRef.current,
@@ -64,6 +66,7 @@ export function RadarCanvas({ mapName, frame, grenades, kills, damages, heatmap 
       layers,
       selectedSteamId,
       heatmap: heatmapRef.current,
+      eventHighlight,
     });
   }, []);
 
@@ -113,6 +116,7 @@ export function RadarCanvas({ mapName, frame, grenades, kills, damages, heatmap 
       }
 
       const setSelected = useSpectatorStore.getState().setSelected;
+      useEventHighlightStore.getState().clear();
       if (closestId && closestDist < HIT_TEST_RADIUS * radarScale) {
         setSelected(closestId);
       } else {
@@ -123,21 +127,26 @@ export function RadarCanvas({ mapName, frame, grenades, kills, damages, heatmap 
   );
 
   return (
-    <Card className="relative p-0 overflow-hidden w-full h-full">
-      <canvas
-        ref={canvasRef}
-        width={1024}
-        height={1024}
-        className="max-w-full max-h-full aspect-square rounded-lg cursor-default block mx-auto"
-        onClick={handleClick}
-      />
-      <button
-        className="absolute top-2 left-2 bg-card/80 backdrop-blur-sm rounded-lg p-1.5 ring-1 ring-border hover:bg-card/90 transition-colors"
-        onClick={toggleFullscreen}
-      >
-        {isFullscreen ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
-      </button>
-      <RadarLayerControls />
-    </Card>
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="max-w-full max-h-full flex flex-col">
+        <div className="relative flex-1 min-h-0 aspect-square">
+          <canvas
+            ref={canvasRef}
+            width={1024}
+            height={1024}
+            className="w-full h-full rounded-lg cursor-default block"
+            onClick={handleClick}
+          />
+          <button
+            className="absolute top-2 left-2 bg-card/80 backdrop-blur-sm rounded-lg p-1.5 ring-1 ring-border hover:bg-card/90 transition-colors"
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+          </button>
+          <RadarLayerControls />
+        </div>
+        {footer}
+      </div>
+    </div>
   );
 }

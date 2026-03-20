@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
 import type { PlayerStats } from '@/modules/demo/model';
 
 interface PlayerComparisonProps {
@@ -26,17 +25,17 @@ const COMPARE_ROWS: { key: CompareKey; label: string; format?: (v: number) => st
   { key: 'kd', label: 'K/D', format: (v) => v.toFixed(2) },
   { key: 'adr', label: 'ADR', format: (v) => v.toFixed(1) },
   { key: 'hsPercent', label: 'HS%', format: (v) => `${v}%` },
-  { key: 'firstKills', label: 'First Kills' },
-  { key: 'firstDeaths', label: 'First Deaths', inverse: true },
-  { key: 'openingDuelWinRate', label: 'Opening Duel%', format: (v) => `${v}%` },
-  { key: 'tradeKills', label: 'Trade Kills' },
-  { key: 'clutchesWon', label: 'Clutches Won' },
-  { key: 'flashAssists', label: 'Flash Assists' },
-  { key: 'utilityDamage', label: 'Utility Damage' },
-  { key: 'multiKill2k', label: '2K Rounds' },
-  { key: 'multiKill3k', label: '3K Rounds' },
-  { key: 'multiKill4k', label: '4K Rounds' },
-  { key: 'multiKill5k', label: '5K Rounds' },
+  { key: 'firstKills', label: 'FK' },
+  { key: 'firstDeaths', label: 'FD', inverse: true },
+  { key: 'openingDuelWinRate', label: 'OD%', format: (v) => `${v}%` },
+  { key: 'tradeKills', label: 'Trade' },
+  { key: 'clutchesWon', label: 'Clutch' },
+  { key: 'flashAssists', label: 'Flash' },
+  { key: 'utilityDamage', label: 'Util Dmg' },
+  { key: 'multiKill2k', label: '2K' },
+  { key: 'multiKill3k', label: '3K' },
+  { key: 'multiKill4k', label: '4K' },
+  { key: 'multiKill5k', label: '5K' },
 ];
 
 export function PlayerComparison({ stats }: PlayerComparisonProps) {
@@ -47,13 +46,13 @@ export function PlayerComparison({ stats }: PlayerComparisonProps) {
   const b = useMemo(() => stats.find((s) => s.steamId === playerB), [stats, playerB]);
 
   return (
-    <div className="p-4">
-      {/* Player selectors */}
-      <div className="flex items-center gap-4 mb-4">
+    <div className="p-3">
+      {/* Player selectors — stacked */}
+      <div className="flex flex-col gap-2 mb-3">
         <select
           value={playerA}
           onChange={(e) => setPlayerA(e.target.value)}
-          className="bg-muted text-foreground rounded px-3 py-1.5 text-sm border border-border"
+          className="w-full bg-transparent text-foreground rounded px-2 py-1.5 text-xs border border-border/50 hover:border-border"
         >
           {stats.map((s) => (
             <option key={s.steamId} value={s.steamId}>
@@ -61,11 +60,10 @@ export function PlayerComparison({ stats }: PlayerComparisonProps) {
             </option>
           ))}
         </select>
-        <span className="text-muted-foreground text-sm font-semibold">VS</span>
         <select
           value={playerB}
           onChange={(e) => setPlayerB(e.target.value)}
-          className="bg-muted text-foreground rounded px-3 py-1.5 text-sm border border-border"
+          className="w-full bg-transparent text-foreground rounded px-2 py-1.5 text-xs border border-border/50 hover:border-border"
         >
           {stats.map((s) => (
             <option key={s.steamId} value={s.steamId}>
@@ -76,29 +74,7 @@ export function PlayerComparison({ stats }: PlayerComparisonProps) {
       </div>
 
       {a && b && (
-        <div className="space-y-1">
-          {/* Header */}
-          <div className="grid grid-cols-[1fr_auto_1fr] gap-2 px-2 py-1">
-            <div className="text-right">
-              <Badge
-                variant="outline"
-                className={a.team === 'CT' ? 'text-blue-400 border-blue-500/30' : 'text-yellow-400 border-yellow-500/30'}
-              >
-                {a.name}
-              </Badge>
-            </div>
-            <div className="w-24" />
-            <div>
-              <Badge
-                variant="outline"
-                className={b.team === 'CT' ? 'text-blue-400 border-blue-500/30' : 'text-yellow-400 border-yellow-500/30'}
-              >
-                {b.name}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Comparison rows */}
+        <div className="space-y-0.5">
           {COMPARE_ROWS.map((row) => {
             const valA = a[row.key];
             const valB = b[row.key];
@@ -112,24 +88,24 @@ export function PlayerComparison({ stats }: PlayerComparisonProps) {
             return (
               <div
                 key={row.key}
-                className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center px-2 py-0.5"
+                className="grid grid-cols-[1fr_auto_1fr] gap-1 items-center px-1 py-0.5"
               >
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-1">
                   <span className={`text-xs tabular-nums ${aWins ? 'text-green-400 font-bold' : 'text-muted-foreground'}`}>
                     {fmtA}
                   </span>
-                  <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
+                  <div className="w-14 h-1.5 bg-muted/30 rounded-full overflow-hidden flex justify-end">
                     <div
                       className={`h-full rounded-full ${aWins ? 'bg-green-500' : 'bg-muted-foreground/30'}`}
                       style={{ width: `${pctA}%` }}
                     />
                   </div>
                 </div>
-                <span className="text-[10px] text-muted-foreground w-24 text-center">
+                <span className="text-[10px] text-muted-foreground w-14 text-center">
                   {row.label}
                 </span>
-                <div className="flex items-center gap-2">
-                  <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="flex items-center gap-1">
+                  <div className="w-14 h-1.5 bg-muted/30 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${bWins ? 'bg-green-500' : 'bg-muted-foreground/30'}`}
                       style={{ width: `${100 - pctA}%` }}
