@@ -36,6 +36,7 @@ export interface FramePlayer {
   x: number;
   y: number;
   z: number;
+  pitch: number;
   yaw: number;
   health: number;
   armor: number;
@@ -44,6 +45,17 @@ export interface FramePlayer {
   hasHelmet: boolean;
   hasDefuser: boolean;
   money: number;
+  equipValue: number;
+  ping: number;
+  isScoped: boolean;
+  isDefusing: boolean;
+  isAirborne: boolean;
+  flashDuration: number;
+  killsTotal: number;
+  deathsTotal: number;
+  assistsTotal: number;
+  score: number;
+  mvps: number;
 }
 
 export interface Bomb {
@@ -129,6 +141,17 @@ export interface PlayerStats {
   firstKills: number;
   firstDeaths: number;
   utilityDamage: number;
+  tradeKills: number;
+  clutchesWon: number;
+  clutchesTotal: number;
+  kast: number;
+  rating: number;
+  openingDuelWinRate: number;
+  multiKill2k: number;
+  multiKill3k: number;
+  multiKill4k: number;
+  multiKill5k: number;
+  flashAssists: number;
 }
 
 export type DemoEventMap = {

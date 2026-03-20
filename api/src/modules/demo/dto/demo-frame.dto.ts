@@ -20,6 +20,9 @@ export class FramePlayerDto {
   z: number;
 
   @ApiProperty()
+  pitch: number;
+
+  @ApiProperty()
   yaw: number;
 
   @ApiProperty()
@@ -42,6 +45,39 @@ export class FramePlayerDto {
 
   @ApiProperty()
   money: number;
+
+  @ApiProperty()
+  equipValue: number;
+
+  @ApiProperty()
+  ping: number;
+
+  @ApiProperty()
+  isScoped: boolean;
+
+  @ApiProperty()
+  isDefusing: boolean;
+
+  @ApiProperty()
+  isAirborne: boolean;
+
+  @ApiProperty()
+  flashDuration: number;
+
+  @ApiProperty()
+  killsTotal: number;
+
+  @ApiProperty()
+  deathsTotal: number;
+
+  @ApiProperty()
+  assistsTotal: number;
+
+  @ApiProperty()
+  score: number;
+
+  @ApiProperty()
+  mvps: number;
 }
 
 export class BombDto {

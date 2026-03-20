@@ -2,11 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { StatsCalculatorProvider } from '../../providers/stats-calculator.provider.js';
-import type { KillEventDto, DamageEventDto } from '../../dto/demo-events.dto.js';
+import type { DamageEventDto,KillEventDto } from '../../dto/demo-events.dto.js';
 import type { DemoRoundDto } from '../../dto/demo-round.dto.js';
 import type { DemoSummaryDto } from '../../dto/demo-summary.dto.js';
 import type { PlayerStatsDto } from '../../dto/player-stats.dto.js';
+import { StatsCalculatorProvider } from '../../providers/stats-calculator.provider.js';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data', 'demos');
 
@@ -22,7 +22,15 @@ export class FindDemoStatsService {
 
     const statsPath = path.join(demoDir, 'stats.json');
     if (fs.existsSync(statsPath)) {
-      return JSON.parse(fs.readFileSync(statsPath, 'utf-8'));
+      const cached: PlayerStatsDto[] = JSON.parse(
+        fs.readFileSync(statsPath, 'utf-8'),
+      );
+      // Invalidate cache if missing new fields (e.g. rating)
+      if (cached.length > 0 && cached[0].rating === undefined) {
+        // Fall through to recalculate
+      } else {
+        return cached;
+      }
     }
 
     const summary: DemoSummaryDto = JSON.parse(

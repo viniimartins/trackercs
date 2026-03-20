@@ -15,6 +15,7 @@ interface PlaybackState {
   setRound: (round: number) => void;
   setSpeed: (speed: number) => void;
   nextFrame: () => void;
+  prevFrame: () => void;
   reset: () => void;
 }
 
@@ -44,6 +45,13 @@ export const usePlaybackStore = create<PlaybackState>((set, get) => ({
       set({ currentFrameIndex: currentFrameIndex + 1 });
     } else {
       set({ isPlaying: false });
+    }
+  },
+
+  prevFrame: () => {
+    const { currentFrameIndex } = get();
+    if (currentFrameIndex > 0) {
+      set({ currentFrameIndex: currentFrameIndex - 1 });
     }
   },
 

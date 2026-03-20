@@ -2,8 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { DemoParserProvider } from '../../providers/demo-parser.provider.js';
 import type { DemoRoundDto } from '../../dto/demo-round.dto.js';
+import { DemoParserProvider } from '../../providers/demo-parser.provider.js';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data', 'demos');
 

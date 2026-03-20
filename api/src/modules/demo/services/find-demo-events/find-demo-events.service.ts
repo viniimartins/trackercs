@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -18,9 +18,7 @@ export class FindDemoEventsService {
 
     const filePath = path.join(DATA_DIR, id, 'events', `${type}.json`);
     if (!fs.existsSync(filePath)) {
-      throw new NotFoundException(
-        `Events "${type}" not found for demo ${id}`,
-      );
+      return [];
     }
 
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));

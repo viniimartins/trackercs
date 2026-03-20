@@ -36,4 +36,37 @@ export class PlayerStatsDto {
 
   @ApiProperty()
   utilityDamage: number;
+
+  @ApiProperty()
+  tradeKills: number;
+
+  @ApiProperty()
+  clutchesWon: number;
+
+  @ApiProperty()
+  clutchesTotal: number;
+
+  @ApiProperty()
+  kast: number;
+
+  @ApiProperty()
+  rating: number;
+
+  @ApiProperty()
+  openingDuelWinRate: number;
+
+  @ApiProperty()
+  multiKill2k: number;
+
+  @ApiProperty()
+  multiKill3k: number;
+
+  @ApiProperty()
+  multiKill4k: number;
+
+  @ApiProperty()
+  multiKill5k: number;
+
+  @ApiProperty()
+  flashAssists: number;
 }

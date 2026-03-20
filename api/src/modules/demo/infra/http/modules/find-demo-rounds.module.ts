@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 
-import { FindDemoRoundsController } from '../controllers/find-demo-rounds.controller.js';
 import { FindDemoRoundsService } from '../../../services/find-demo-rounds/find-demo-rounds.service.js';
+import { FindDemoRoundsController } from '../controllers/find-demo-rounds.controller.js';
 
 @Module({
   controllers: [FindDemoRoundsController],

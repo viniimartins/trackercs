@@ -1,21 +1,26 @@
-import { Injectable, Logger } from '@nestjs/common';
 import {
   parseEvent,
-  parseTicks,
   parseHeader,
+  parseTicks,
 } from '@laihoe/demoparser2';
+import { Injectable, Logger } from '@nestjs/common';
+
 import { MAP_CONFIGS } from '../constants/maps.js';
-import type { DemoSummaryDto, PlayerDto } from '../dto/demo-summary.dto.js';
-import type { DemoRoundDto } from '../dto/demo-round.dto.js';
-import type { DemoFrameDto, FramePlayerDto, BombDto } from '../dto/demo-frame.dto.js';
 import type {
-  KillEventDto,
+  BombEventDto,
   DamageEventDto,
   GrenadeEventDto,
-  BombEventDto,
+  KillEventDto,
 } from '../dto/demo-events.dto.js';
+import type { BombDto,DemoFrameDto, FramePlayerDto } from '../dto/demo-frame.dto.js';
+import type { DemoRoundDto } from '../dto/demo-round.dto.js';
+import type { DemoSummaryDto, PlayerDto } from '../dto/demo-summary.dto.js';
 
 const TICK_INTERVAL = 4;
+
+function isZeroCoord(x: number, y: number, z: number): boolean {
+  return x === 0 && y === 0 && z === 0;
+}
 
 function deriveWinnerFromReason(reason: string): 'ct_win' | 't_win' | undefined {
   switch (reason) {
@@ -60,7 +65,7 @@ export class DemoParserProvider {
       'team_num',
     ];
 
-    let players: PlayerDto[] = [];
+    const players: PlayerDto[] = [];
     try {
       const lastTicks = parseTicks(buffer, playerInfoFields, []);
       const seen = new Set<string>();
@@ -185,14 +190,42 @@ export class DemoParserProvider {
         }
         return { x: latest.x, y: latest.y, z: latest.z, state: 'carried' };
       }
-      case 'dropped':
-        return { x: latest.x, y: latest.y, z: latest.z, state: 'dropped' };
-      case 'planted':
-        return { x: latest.x, y: latest.y, z: latest.z, state: 'planted' };
-      case 'defused':
-        return { x: latest.x, y: latest.y, z: latest.z, state: 'defused' };
-      case 'exploded':
-        return { x: latest.x, y: latest.y, z: latest.z, state: 'exploded' };
+      case 'dropped': {
+        let { x, y, z } = latest;
+        if (isZeroCoord(x, y, z)) {
+          const dropper = players.find((p) => p.steamId === latest.playerSteamId);
+          if (dropper) { x = dropper.x; y = dropper.y; z = dropper.z; }
+        }
+        return { x, y, z, state: 'dropped' };
+      }
+      case 'planted': {
+        let { x, y, z } = latest;
+        if (isZeroCoord(x, y, z)) {
+          const planter = players.find((p) => p.steamId === latest.playerSteamId);
+          if (planter) { x = planter.x; y = planter.y; z = planter.z; }
+        }
+        return { x, y, z, state: 'planted' };
+      }
+      case 'defused': {
+        let { x, y, z } = latest;
+        if (isZeroCoord(x, y, z)) {
+          const planted = [...relevant].reverse().find((e) => e.action === 'planted');
+          if (planted && !isZeroCoord(planted.x, planted.y, planted.z)) {
+            x = planted.x; y = planted.y; z = planted.z;
+          }
+        }
+        return { x, y, z, state: 'defused' };
+      }
+      case 'exploded': {
+        let { x, y, z } = latest;
+        if (isZeroCoord(x, y, z)) {
+          const planted = [...relevant].reverse().find((e) => e.action === 'planted');
+          if (planted && !isZeroCoord(planted.x, planted.y, planted.z)) {
+            x = planted.x; y = planted.y; z = planted.z;
+          }
+        }
+        return { x, y, z, state: 'exploded' };
+      }
       default:
         return undefined;
     }
@@ -227,7 +260,18 @@ export class DemoParserProvider {
       'team_num',
       'steamid',
       'name',
+      'balance',
       'current_equip_value',
+      'ping',
+      'is_scoped',
+      'is_defusing',
+      'is_airborne',
+      'flash_duration',
+      'kills_total',
+      'deaths_total',
+      'assists_total',
+      'score',
+      'mvps',
     ];
 
     let tickData: Record<string, unknown>[];
@@ -256,6 +300,7 @@ export class DemoParserProvider {
         x: Number(row['X'] ?? 0),
         y: Number(row['Y'] ?? 0),
         z: Number(row['Z'] ?? 0),
+        pitch: Number(row['pitch'] ?? 0),
         yaw: Number(row['yaw'] ?? 0),
         health: Number(row['health'] ?? 0),
         armor: Number(row['armor_value'] ?? 0),
@@ -263,7 +308,18 @@ export class DemoParserProvider {
         activeWeapon: row['active_weapon_name'] ? String(row['active_weapon_name']) : undefined,
         hasHelmet: Boolean(row['has_helmet']),
         hasDefuser: Boolean(row['has_defuser']),
-        money: Number(row['current_equip_value'] ?? 0),
+        money: Number(row['balance'] ?? 0),
+        equipValue: Number(row['current_equip_value'] ?? 0),
+        ping: Number(row['ping'] ?? 0),
+        isScoped: Boolean(row['is_scoped']),
+        isDefusing: Boolean(row['is_defusing']),
+        isAirborne: Boolean(row['is_airborne']),
+        flashDuration: Number(row['flash_duration'] ?? 0),
+        killsTotal: Number(row['kills_total'] ?? 0),
+        deathsTotal: Number(row['deaths_total'] ?? 0),
+        assistsTotal: Number(row['assists_total'] ?? 0),
+        score: Number(row['score'] ?? 0),
+        mvps: Number(row['mvps'] ?? 0),
       };
 
       frameMap.get(tick)!.push(player);

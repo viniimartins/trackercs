@@ -1,48 +1,69 @@
 'use client';
 
-import { useState } from 'react';
 import { useFindDemoById } from '@/modules/demo/queries/find-demo-by-id';
 import { useFindDemoRounds } from '@/modules/demo/queries/find-demo-rounds';
 import { useFindRoundFrames } from '@/modules/demo/queries/find-round-frames';
 import { useFindDemoStats } from '@/modules/demo/queries/find-demo-stats';
+import { useFindDemoEconomy } from '@/modules/demo/queries/find-demo-economy';
+import { useFindDemoEvents } from '@/modules/demo/queries/find-demo-events';
+import { useFindDemoHeatmap } from '@/modules/demo/queries/find-demo-heatmap';
 import { usePlaybackStore } from '@/stores/playback-store';
+import { useRadarFullscreenStore } from '@/stores/radar-fullscreen-store';
+import { useRadarLayersStore } from '@/stores/radar-layers-store';
+import { useSpectatorStore } from '@/stores/spectator-store';
+import { useTacticalBoardStore } from '@/stores/tactical-board-store';
+
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { RadarCanvas } from './_components/radar-canvas';
 import { PlaybackControls } from './_components/playback-controls';
-import { RoundSelector } from './_components/round-selector';
-import { PlayerList } from './_components/player-list';
+import { RoundCardList } from './_components/round-card-list';
+import { PlayerHudPanel } from './_components/player-hud-panel';
 import { Scoreboard } from './_components/scoreboard';
-import { StatsTable } from './_components/stats-table';
 import { RoundTimeline } from './_components/round-timeline';
+import { StatsTable } from './_components/stats-table';
+import { EconomyChart } from './_components/economy-chart';
+import { PlayerComparison } from './_components/player-comparison';
+import { TacticalBoard } from './_components/tactical-board';
+import { HitgroupChart } from './_components/hitgroup-chart';
 import { usePlaybackLoop } from './_hooks/use-playback-loop';
 import { useRoundEvents } from './_hooks/use-round-events';
 import { useRoundTimelineEvents } from './_hooks/use-round-timeline-events';
 
-type Tab = 'radar' | 'stats';
-
 export function DemoViewerContent({ id }: { id: string }) {
-  const [activeTab, setActiveTab] = useState<Tab>('radar');
   const { data: demo, isLoading: demoLoading } = useFindDemoById(id);
   const { data: rounds } = useFindDemoRounds(id);
   const currentRound = usePlaybackStore((s) => s.currentRound);
   const currentFrameIndex = usePlaybackStore((s) => s.currentFrameIndex);
   const { data: frames } = useFindRoundFrames(id, currentRound);
-  const { data: stats } = useFindDemoStats(id, activeTab === 'stats');
+  const { data: stats } = useFindDemoStats(id);
+  const { data: economy } = useFindDemoEconomy(id);
+  const { data: allDamages } = useFindDemoEvents(id, 'damage');
+  const { data: allKills } = useFindDemoEvents(id, 'kills');
+  const { data: allBombEvents } = useFindDemoEvents(id, 'bomb');
+
+  const heatmapEnabled = useRadarLayersStore((s) => s.heatmap);
+  const heatmapType = useRadarLayersStore((s) => s.heatmapType);
+  const { data: heatmap } = useFindDemoHeatmap(id, heatmapType, heatmapEnabled);
+
+  const isTacticalActive = useTacticalBoardStore((s) => s.isActive);
+  const selectedSteamId = useSpectatorStore((s) => s.selectedSteamId);
 
   usePlaybackLoop(frames ?? []);
 
-  const { grenades } = useRoundEvents(id, currentRound);
+  const { grenades, kills, damages } = useRoundEvents(id, currentRound);
   const { events: timelineEvents } = useRoundTimelineEvents(
     id,
     currentRound,
     rounds ?? [],
   );
 
+  const isFullscreen = useRadarFullscreenStore((s) => s.isFullscreen);
   const currentFrame = frames?.[currentFrameIndex];
 
   if (demoLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -50,75 +71,102 @@ export function DemoViewerContent({ id }: { id: string }) {
   if (!demo) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-zinc-500">Demo not found</p>
+        <p className="text-muted-foreground">Demo not found</p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col h-screen">
-      <Scoreboard demo={demo} rounds={rounds ?? []} />
+    <div className="flex-1 flex flex-col min-h-0">
+      {!isFullscreen && (
+        <Scoreboard demo={demo} rounds={rounds ?? []} frame={currentFrame ?? null} />
+      )}
 
-      <div className="flex gap-1 px-4 pt-2">
-        <button
-          className={`px-4 py-1.5 text-sm rounded-t-md ${
-            activeTab === 'radar'
-              ? 'bg-zinc-800 text-white'
-              : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'
-          }`}
-          onClick={() => setActiveTab('radar')}
-        >
-          Radar
-        </button>
-        <button
-          className={`px-4 py-1.5 text-sm rounded-t-md ${
-            activeTab === 'stats'
-              ? 'bg-zinc-800 text-white'
-              : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'
-          }`}
-          onClick={() => setActiveTab('stats')}
-        >
-          Stats
-        </button>
-      </div>
-
-      {activeTab === 'radar' ? (
-        <>
-          <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 flex items-center justify-center p-4">
-              <RadarCanvas
-                mapName={demo.mapName}
-                frame={currentFrame ?? null}
-                grenades={grenades}
-              />
-            </div>
-
-            <PlayerList frame={currentFrame ?? null} />
-          </div>
-
-          <div className="border-t border-zinc-800">
-            <RoundTimeline
-              events={timelineEvents}
-              totalFrames={frames?.length ?? 0}
-            />
-            <RoundSelector
+      <div className="flex-1 min-h-0 flex overflow-hidden relative">
+        {/* Left — Round cards */}
+        {!isFullscreen && (
+          <div className="absolute left-0 top-0 h-full z-10 w-44">
+            <RoundCardList
               rounds={rounds ?? []}
               totalRounds={demo.totalRounds}
+              kills={allKills}
+              bombEvents={allBombEvents}
+              players={demo.players}
             />
-            <PlaybackControls totalFrames={frames?.length ?? 0} />
           </div>
-        </>
-      ) : (
-        <div className="flex-1 overflow-auto">
-          {stats ? (
-            <StatsTable stats={stats} />
-          ) : (
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
-            </div>
-          )}
+        )}
+
+        {/* Center — Radar (always visible, fills entire area) */}
+        <div className="flex-1 min-h-0 min-w-0 flex items-center justify-center">
+          <RadarCanvas
+            mapName={demo.mapName}
+            frame={currentFrame ?? null}
+            grenades={grenades}
+            kills={kills}
+            damages={damages}
+            heatmap={heatmapEnabled ? heatmap ?? null : null}
+          />
+          {isTacticalActive && <TacticalBoard />}
         </div>
-      )}
+
+        {/* Bottom overlay — Timeline + Controls */}
+        <div className="absolute bottom-0 left-0 right-0 z-10 bg-card/80 backdrop-blur-sm">
+          <RoundTimeline
+            events={timelineEvents}
+            totalFrames={frames?.length ?? 0}
+          />
+          <PlaybackControls totalFrames={frames?.length ?? 0} />
+        </div>
+
+        {/* Right — Tabbed panel */}
+        {!isFullscreen && (
+          <div className="absolute right-0 top-0 h-full z-10 w-80 bg-card/80 backdrop-blur-sm flex flex-col border-l border-white/10">
+            <Tabs defaultValue="players" className="flex-1 min-h-0 flex flex-col">
+              <TabsList variant="line" className="shrink-0 px-2 py-1 border-b border-white/10">
+                <TabsTrigger value="players" className="text-xs">Players</TabsTrigger>
+                <TabsTrigger value="stats" className="text-xs">Stats</TabsTrigger>
+                <TabsTrigger value="economy" className="text-xs">Eco</TabsTrigger>
+                <TabsTrigger value="compare" className="text-xs">Cmp</TabsTrigger>
+                <TabsTrigger value="damage" className="text-xs">Dmg</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="players" className="flex-1 min-h-0 overflow-auto">
+                <PlayerHudPanel
+                  frame={currentFrame ?? null}
+                  stats={stats}
+                />
+              </TabsContent>
+
+              <TabsContent value="stats" className="flex-1 min-h-0 overflow-auto p-2">
+                {stats && <StatsTable stats={stats} />}
+              </TabsContent>
+
+              <TabsContent value="economy" className="flex-1 min-h-0 overflow-auto p-2">
+                {economy && (
+                  <EconomyChart
+                    economy={economy}
+                    currentRound={currentRound}
+                    className="h-full"
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="compare" className="flex-1 min-h-0 overflow-auto p-2">
+                {stats && <PlayerComparison stats={stats} />}
+              </TabsContent>
+
+              <TabsContent value="damage" className="flex-1 min-h-0 overflow-auto p-2">
+                {allDamages && (
+                  <HitgroupChart
+                    damages={allDamages}
+                    selectedSteamId={selectedSteamId}
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

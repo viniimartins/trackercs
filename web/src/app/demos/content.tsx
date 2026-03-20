@@ -2,8 +2,12 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Upload, FileText, MapPin, Loader2, BarChart3 } from 'lucide-react';
 import { useListDemos } from '@/modules/demo/queries/list-demos';
 import { useUploadDemo } from '@/modules/demo/mutations/use-upload-demo';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export function DemosContent() {
   const router = useRouter();
@@ -42,75 +46,110 @@ export function DemosContent() {
 
   return (
     <div className="flex-1 p-8 max-w-5xl mx-auto w-full">
-      <h1 className="text-3xl font-bold mb-8">CS2 Demo Viewer</h1>
-
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors mb-8 ${
-          dragActive
-            ? 'border-blue-500 bg-blue-500/10'
-            : 'border-zinc-700 hover:border-zinc-500'
-        }`}
-      >
-        {uploadMutation.isPending ? (
-          <div>
-            <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-            <p className="text-zinc-400">Parsing demo file... This may take a few minutes.</p>
-          </div>
-        ) : (
-          <div>
-            <p className="text-lg mb-2">Drop a .rar or .dem file here</p>
-            <p className="text-zinc-500 text-sm">or click to browse</p>
-          </div>
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".rar,.dem"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFile(file);
-          }}
-        />
+      <div className="mb-10 flex items-start justify-between">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight mb-2">CS2 Demo Viewer</h1>
+          <p className="text-muted-foreground">Upload and analyze your Counter-Strike 2 demo files</p>
+        </div>
+        <Button variant="outline" onClick={() => router.push('/dashboard')}>
+          <BarChart3 className="size-4 mr-2" />
+          Dashboard
+        </Button>
       </div>
 
+      <Card
+        className={`cursor-pointer transition-all duration-200 mb-8 ${
+          dragActive
+            ? 'ring-2 ring-primary bg-primary/5'
+            : 'hover:ring-1 hover:ring-primary/50'
+        }`}
+      >
+        <CardContent
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onClick={() => fileInputRef.current?.click()}
+          className="flex flex-col items-center justify-center py-12"
+        >
+          {uploadMutation.isPending ? (
+            <>
+              <Loader2 className="size-10 text-primary animate-spin mb-4" />
+              <p className="text-muted-foreground">Parsing demo file... This may take a few minutes.</p>
+            </>
+          ) : (
+            <>
+              <div className="rounded-full bg-primary/10 p-4 mb-4">
+                <Upload className="size-8 text-primary" />
+              </div>
+              <p className="text-lg font-medium mb-1">Drop a .rar or .dem file here</p>
+              <p className="text-sm text-muted-foreground">or click to browse</p>
+            </>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".rar,.dem"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFile(file);
+            }}
+          />
+        </CardContent>
+      </Card>
+
       {uploadMutation.isError && (
-        <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-8">
-          <p className="text-red-400">
-            Upload failed: {uploadMutation.error?.message ?? 'Unknown error'}
-          </p>
-        </div>
+        <Card className="ring-destructive/50 bg-destructive/10 mb-8">
+          <CardContent>
+            <p className="text-destructive text-sm">
+              Upload failed: {uploadMutation.error?.message ?? 'Unknown error'}
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       <h2 className="text-xl font-semibold mb-4">Parsed Demos</h2>
       {isLoading ? (
-        <p className="text-zinc-500">Loading...</p>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+          <span>Loading...</span>
+        </div>
       ) : !demos?.length ? (
-        <p className="text-zinc-500">No demos parsed yet. Upload one above.</p>
+        <p className="text-muted-foreground">No demos parsed yet. Upload one above.</p>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {demos.map((demo) => (
-            <button
+            <Card
               key={demo.id}
+              className="cursor-pointer transition-all hover:ring-1 hover:ring-primary/40"
               onClick={() => router.push(`/demos/${demo.id}`)}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-left hover:border-zinc-600 transition-colors"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-lg">{demo.fileName}</p>
-                  <p className="text-zinc-400 text-sm">
-                    {demo.mapName} &middot; {demo.teamCT} {demo.scoreCT} - {demo.scoreT} {demo.teamT} &middot; {demo.totalRounds} rounds
-                  </p>
+              <CardContent className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="rounded-lg bg-muted p-2.5">
+                    <FileText className="size-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">{demo.fileName}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="gap-1">
+                        <MapPin className="size-3" />
+                        {demo.mapName}
+                      </Badge>
+                      <Badge variant="secondary">
+                        <span className="text-blue-400">{demo.teamCT}</span>
+                        <span className="mx-1.5 font-bold">{demo.scoreCT} - {demo.scoreT}</span>
+                        <span className="text-yellow-400">{demo.teamT}</span>
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{demo.totalRounds} rounds</span>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-zinc-600 text-sm">
+                <span className="text-muted-foreground text-sm">
                   {new Date(demo.createdAt).toLocaleDateString()}
                 </span>
-              </div>
-            </button>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

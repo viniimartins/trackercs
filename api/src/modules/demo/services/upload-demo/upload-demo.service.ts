@@ -1,13 +1,13 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { BadRequestException,Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
-import * as path from 'path';
 import { createExtractorFromData } from 'node-unrar-js';
+import * as path from 'path';
 
-import { DemoParserProvider } from '../../providers/demo-parser.provider.js';
-import type { DemoSummaryDto } from '../../dto/demo-summary.dto.js';
-import type { DemoRoundDto } from '../../dto/demo-round.dto.js';
 import type { BombEventDto } from '../../dto/demo-events.dto.js';
+import type { DemoRoundDto } from '../../dto/demo-round.dto.js';
+import type { DemoSummaryDto } from '../../dto/demo-summary.dto.js';
+import { DemoParserProvider } from '../../providers/demo-parser.provider.js';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data', 'demos');
 
@@ -111,8 +111,8 @@ export class UploadDemoService {
       require.resolve('node-unrar-js/dist/js/unrar.wasm'),
     );
     const extractor = await createExtractorFromData({
-      data: new Uint8Array(rarBuffer).buffer as ArrayBuffer,
-      wasmBinary: new Uint8Array(wasmBinary).buffer as ArrayBuffer,
+      data: new Uint8Array(rarBuffer).buffer,
+      wasmBinary: new Uint8Array(wasmBinary).buffer,
     });
 
     const { files } = extractor.extract();
