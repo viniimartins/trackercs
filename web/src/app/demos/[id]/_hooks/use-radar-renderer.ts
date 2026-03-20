@@ -112,6 +112,7 @@ export interface HeatmapData {
 export interface EventHighlightPos {
   gameX: number;
   gameY: number;
+  attackerSteamId?: string;
 }
 
 interface RenderOptions {
@@ -277,6 +278,18 @@ export function useRadarRenderer() {
         }
       }
 
+      // 5.5 Attacker highlight ring (from kill event hover/click)
+      if (options?.eventHighlight?.attackerSteamId) {
+        const attacker = frame.players.find(
+          (p) => p.steamId === options.eventHighlight!.attackerSteamId,
+        );
+        if (attacker && attacker.isAlive) {
+          const aPos = gameToRadar(attacker.x, attacker.y, config);
+          const attackerColor = attacker.team === 'CT' ? CT_COLOR : T_COLOR;
+          drawAttackerHighlight(ctx, aPos.x * scale, aPos.y * scale, scale, attackerColor);
+        }
+      }
+
       // 6. Event highlight ring
       if (options?.eventHighlight) {
         const hp = gameToRadar(options.eventHighlight.gameX, options.eventHighlight.gameY, config);
@@ -307,6 +320,30 @@ function drawSelectionRing(
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2 * scale;
   ctx.globalAlpha = 0.7 + Math.sin(Date.now() / 300) * 0.3;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawAttackerHighlight(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale: number,
+  color: string,
+) {
+  const now = Date.now();
+  const pulse = 1 + Math.sin(now / 250) * 0.15;
+  const baseRadius = (8 + 10) * scale; // larger than selection ring
+  const radius = baseRadius * pulse;
+  const alpha = 0.6 + Math.sin(now / 250) * 0.25;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5 * scale;
   ctx.stroke();
   ctx.globalAlpha = 1;
   ctx.restore();

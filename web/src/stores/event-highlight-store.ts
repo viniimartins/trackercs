@@ -3,6 +3,7 @@ import { create } from 'zustand';
 interface EventHighlight {
   gameX: number;
   gameY: number;
+  attackerSteamId?: string;
 }
 
 interface EventHighlightState {

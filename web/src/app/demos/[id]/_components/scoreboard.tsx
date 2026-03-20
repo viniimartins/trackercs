@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Shield, Star } from 'lucide-react';
+import { ArrowLeft, Shield, Crosshair } from 'lucide-react';
 import { usePlaybackStore } from '@/stores/playback-store';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -15,11 +15,14 @@ function getRoundPhase(
   frame: DemoFrame | null,
   round: DemoRound | undefined,
   isBombPlanted: boolean,
+  tickRate: number,
 ): RoundPhase {
   if (!frame || !round) return 'freeze';
-  if (frame.tick >= round.endTick) return 'ended';
+  if (frame.tick >= round.endTick - 4) return 'ended';
   if (isBombPlanted) return 'planted';
-  const freezeEndTick = round.freezeEndTick ?? round.startTick;
+  const freezeEndTick = round.freezeEndTick && round.freezeEndTick > round.startTick
+    ? round.freezeEndTick
+    : round.startTick + 15 * tickRate;
   if (frame.tick < freezeEndTick) return 'freeze';
   return 'live';
 }
@@ -40,13 +43,14 @@ function getTimerDisplay(
 ): string {
   if (!frame || !round || tickRate === 0) return '0:00';
 
-  const freezeEndTick = round.freezeEndTick ?? round.startTick;
+  const freezeEndTick = round.freezeEndTick && round.freezeEndTick > round.startTick
+    ? round.freezeEndTick
+    : round.startTick + 15 * tickRate;
   const roundTimeSeconds = round.roundTimeSeconds ?? 115;
 
   switch (phase) {
     case 'freeze': {
-      const remainingTicks = freezeEndTick - frame.tick;
-      return formatCountdown(remainingTicks / tickRate);
+      return formatCountdown(roundTimeSeconds);
     }
     case 'live': {
       const elapsedSinceFreezeEnd = (frame.tick - freezeEndTick) / tickRate;
@@ -77,14 +81,14 @@ export function Scoreboard({ demo, rounds, frame, bombPlantTick }: ScoreboardPro
   const round = rounds.find((r) => r.roundNumber === currentRound);
 
   const isBombPlanted = frame?.bomb?.state === 'planted' && bombPlantTick !== null;
-  const phase = getRoundPhase(frame, round, isBombPlanted);
+  const phase = getRoundPhase(frame, round, isBombPlanted, demo.tickRate);
 
   const scoreCT = round?.scoreCT ?? 0;
   const scoreT = round?.scoreT ?? 0;
   const time = getTimerDisplay(frame, round, demo.tickRate, phase, bombPlantTick);
 
   const timerClassName = cn(
-    'text-sm font-bold tabular-nums',
+    'text-base font-black tabular-nums tracking-tight',
     phase === 'freeze' && 'text-yellow-400',
     phase === 'live' && 'text-foreground',
     phase === 'planted' && 'text-red-400 animate-pulse',
@@ -117,29 +121,30 @@ export function Scoreboard({ demo, rounds, frame, bombPlantTick }: ScoreboardPro
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-2">
             <Shield className="size-4 text-blue-400" />
-            <p className="text-blue-400 font-semibold text-sm tracking-wide">{demo.teamCT}</p>
+            <p className="text-blue-400 font-medium text-xs tracking-wide">{demo.teamCT}</p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-3xl font-black tabular-nums text-blue-400 min-w-[2ch] text-right">
-              {scoreCT}
-            </span>
-
-            <div className="flex flex-col items-center gap-0.5">
-              <span className={timerClassName}>{time}</span>
-              <span className="text-[11px] text-muted-foreground font-medium">
-                Round {currentRound}/{demo.totalRounds}
+          <div className="flex flex-col items-center gap-0.5">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl font-black tabular-nums text-blue-400 min-w-[2ch] text-right">
+                {scoreCT}
+              </span>
+              <span className="text-2xl font-light text-muted-foreground/50 select-none">:</span>
+              <span className="text-3xl font-black tabular-nums text-yellow-400 min-w-[2ch] text-left">
+                {scoreT}
               </span>
             </div>
-
-            <span className="text-3xl font-black tabular-nums text-yellow-400 min-w-[2ch] text-left">
-              {scoreT}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={timerClassName}>{time}</span>
+              <span className="text-[10px] text-muted-foreground font-medium">
+                R{currentRound}/{demo.totalRounds}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <p className="text-yellow-400 font-semibold text-sm tracking-wide">{demo.teamT}</p>
-            <Star className="size-4 text-yellow-400" />
+            <p className="text-yellow-400 font-medium text-xs tracking-wide">{demo.teamT}</p>
+            <Crosshair className="size-4 text-yellow-400" />
           </div>
         </div>
 

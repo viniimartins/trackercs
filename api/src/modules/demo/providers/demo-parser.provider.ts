@@ -133,13 +133,15 @@ export class DemoParserProvider {
       const startTick = Number(start?.tick ?? 0);
       const endTick = end ? Number(end.tick) : (roundStarts[i + 1] ? Number(roundStarts[i + 1].tick) - 1 : startTick + 10000);
 
-      const roundTimeSeconds = Number(start?.['timelimit'] ?? 115);
+      const roundTimeSeconds = 115;
 
       // Find the matching round_freeze_end event (first one with tick > startTick and <= endTick)
       const freezeEndEvent = roundFreezeEnds.find(
         (e) => Number(e.tick) > startTick && Number(e.tick) <= endTick,
       );
-      const freezeEndTick = freezeEndEvent ? Number(freezeEndEvent.tick) : startTick;
+      const freezeEndTick = freezeEndEvent
+        ? Number(freezeEndEvent.tick)
+        : startTick + Math.round(15 * 64);
 
       // Remove matched event so it's not reused for subsequent rounds
       if (freezeEndEvent) {
@@ -171,7 +173,12 @@ export class DemoParserProvider {
       });
     }
 
-    const filtered = rounds.filter((r) => !(r.startTick === 0 && r.endTick === 0));
+    const filtered = rounds.filter((r) => {
+      // Remove warmup rounds (tick 0) and rounds with no winner/reason (resets)
+      if (r.startTick === 0 && r.endTick === 0) return false;
+      if (!r.winner && !r.winReason) return false;
+      return true;
+    });
     filtered.forEach((r, i) => { r.roundNumber = i + 1; });
 
     let ctScore = 0;

@@ -102,7 +102,7 @@ export function DemoViewerContent({ id }: { id: string }) {
       <div className="flex-1 min-h-0 flex overflow-hidden relative">
         {/* Left — Round cards */}
         {!isFullscreen && (
-          <div className="absolute left-0 top-0 h-full z-10 w-44 border-r border-white/10">
+          <div className="absolute left-0 top-0 h-full z-10 w-48 border-r border-white/10">
             <RoundCardList
               rounds={rounds ?? []}
               totalRounds={demo.totalRounds}
@@ -114,7 +114,7 @@ export function DemoViewerContent({ id }: { id: string }) {
         )}
 
         {/* Center — Radar (always visible, fills entire area) */}
-        <div className={`relative flex-1 min-h-0 min-w-0 flex items-center justify-center ${!isFullscreen ? 'pl-44 pr-80' : ''}`}>
+        <div className={`flex-1 min-h-0 min-w-0 flex items-center justify-start ${!isFullscreen ? 'pl-52 pr-80' : ''}`}>
           <RadarCanvas
             mapName={demo.mapName}
             frame={currentFrame ?? null}
@@ -131,26 +131,26 @@ export function DemoViewerContent({ id }: { id: string }) {
                 <PlaybackControls totalFrames={frames?.length ?? 0} />
               </div>
             }
+            overlay={
+              !isFullscreen ? (
+                <div className="absolute top-2 right-2 z-20 w-56 max-h-[60%] bg-card/80 backdrop-blur-sm rounded-lg border border-white/10 flex flex-col">
+                  <div className="shrink-0 px-2 py-1 border-b border-white/10">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Events</p>
+                  </div>
+                  <RoundEventFeed
+                    kills={kills}
+                    grenades={grenades}
+                    bombEvents={roundBombEvents}
+                    currentTick={currentFrame?.tick ?? 0}
+                    players={currentFrame?.players ?? []}
+                    startTick={currentRoundData?.startTick ?? 0}
+                    tickRate={demo.tickRate}
+                  />
+                </div>
+              ) : undefined
+            }
           />
           {isTacticalActive && <TacticalBoard />}
-
-          {/* Event feed overlay */}
-          {!isFullscreen && (
-            <div className="absolute top-2 right-2 z-20 w-56 max-h-[60%] bg-card/80 backdrop-blur-sm rounded-lg border border-white/10 flex flex-col">
-              <div className="shrink-0 px-2 py-1 border-b border-white/10">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Events</p>
-              </div>
-              <RoundEventFeed
-                kills={kills}
-                grenades={grenades}
-                bombEvents={roundBombEvents}
-                currentTick={currentFrame?.tick ?? 0}
-                players={currentFrame?.players ?? []}
-                startTick={currentRoundData?.startTick ?? 0}
-                tickRate={demo.tickRate}
-              />
-            </div>
-          )}
         </div>
 
         {/* Right — Tabbed panel */}

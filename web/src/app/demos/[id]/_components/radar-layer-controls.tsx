@@ -35,7 +35,7 @@ export function RadarLayerControls() {
 
   return (
     <TooltipProvider>
-      <div className="absolute top-2 right-2 bg-card/80 backdrop-blur-sm rounded-lg p-1 flex flex-col gap-0.5 ring-1 ring-border">
+      <div className="absolute top-11 left-2 bg-card/80 backdrop-blur-sm rounded-lg p-1 flex flex-col gap-0.5 ring-1 ring-border">
         <Tooltip>
           <TooltipTrigger
             render={
@@ -48,7 +48,7 @@ export function RadarLayerControls() {
               </Button>
             }
           />
-          <TooltipContent side="left">Grenades</TooltipContent>
+          <TooltipContent side="right">Grenades</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -63,7 +63,7 @@ export function RadarLayerControls() {
               </Button>
             }
           />
-          <TooltipContent side="left">Line of Sight</TooltipContent>
+          <TooltipContent side="right">Line of Sight</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -78,7 +78,7 @@ export function RadarLayerControls() {
               </Button>
             }
           />
-          <TooltipContent side="left">Kills</TooltipContent>
+          <TooltipContent side="right">Kills</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -93,7 +93,7 @@ export function RadarLayerControls() {
               </Button>
             }
           />
-          <TooltipContent side="left">Equipment</TooltipContent>
+          <TooltipContent side="right">Equipment</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -108,7 +108,7 @@ export function RadarLayerControls() {
               </Button>
             }
           />
-          <TooltipContent side="left">Damage</TooltipContent>
+          <TooltipContent side="right">Damage</TooltipContent>
         </Tooltip>
 
         <div className="h-px bg-border/50 my-0.5" />
@@ -125,7 +125,7 @@ export function RadarLayerControls() {
               </Button>
             }
           />
-          <TooltipContent side="left">Heatmap</TooltipContent>
+          <TooltipContent side="right">Heatmap</TooltipContent>
         </Tooltip>
 
         {heatmap && (

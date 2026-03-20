@@ -5,6 +5,12 @@ import { Bomb, ShieldCheck, Skull, Timer } from 'lucide-react';
 import { usePlaybackStore } from '@/stores/playback-store';
 import { useRadarFullscreenStore } from '@/stores/radar-fullscreen-store';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useScrollIntoView } from '../_hooks/use-scroll-into-view';
 import type {
   DemoRound,
@@ -42,6 +48,14 @@ function splitIntoHalves(totalRounds: number) {
   }
   return halves;
 }
+
+const WIN_REASON_LABEL: Record<string, string> = {
+  bomb_exploded: 'Bomb exploded',
+  bomb_defused: 'Bomb defused',
+  t_eliminated: 'Terrorists eliminated',
+  ct_eliminated: 'CTs eliminated',
+  time_expired: 'Time expired',
+};
 
 const WIN_REASON_ICON: Record<string, React.ReactNode> = {
   bomb_exploded: <Bomb className="size-3" />,
@@ -105,6 +119,7 @@ export function RoundCardList({
   }, [kills, ctSteamIds]);
 
   return (
+    <TooltipProvider delay={200}>
     <div className="flex flex-col overflow-y-auto py-2 px-1.5 h-full">
       {halves.map((half) => (
         <div key={half.label}>
@@ -139,6 +154,7 @@ export function RoundCardList({
         </div>
       ))}
     </div>
+    </TooltipProvider>
   );
 }
 
@@ -175,7 +191,7 @@ function RoundCard({
       ref={isActive ? ref : undefined}
       onClick={onSelect}
       className={cn(
-        'relative flex items-center gap-1 px-2 py-1 rounded text-left transition-colors overflow-hidden',
+        'relative flex flex-col gap-0.5 px-2.5 py-1.5 rounded text-left overflow-hidden',
         isActive
           ? isFullscreen
             ? 'bg-white/10 ring-1 ring-white/20'
@@ -193,91 +209,94 @@ function RoundCard({
       {round && (
         <div
           className={cn(
-            'absolute inset-y-0 left-0 w-0.5',
+            'absolute inset-y-0 left-0 w-[3px]',
             isCTWin ? 'bg-blue-500' : isTWin ? 'bg-yellow-500' : 'bg-border',
           )}
         />
       )}
 
-      {/* Round number */}
-      <span
-        className={cn(
-          'font-bold text-sm w-5 text-right tabular-nums shrink-0',
-          isActive
-            ? isCTWin
-              ? 'text-blue-400'
-              : isTWin
-                ? 'text-yellow-400'
-                : 'text-primary'
-            : 'text-muted-foreground',
-        )}
-      >
-        {roundNumber}
-      </span>
-
-      {round && (
-        <>
-          {/* Win reason icon */}
-          {icon && (
-            <span
-              className={
-                isCTWin
-                  ? 'text-blue-400'
-                  : isTWin
-                    ? 'text-yellow-400'
-                    : 'text-muted-foreground'
-              }
-            >
-              {icon}
-            </span>
-          )}
-
-          {/* Bomb indicator */}
-          {hadBombPlant && (
-            <Bomb
-              className={cn(
-                'size-2.5 shrink-0',
-                hadBombDefuse
-                  ? 'text-blue-400'
-                  : hadBombExplode
-                    ? 'text-red-400'
-                    : 'text-yellow-400/60',
-              )}
-            />
-          )}
-
-          {/* Winner badge */}
-          <span
-            className={cn(
-              'text-[9px] font-bold uppercase px-1 py-px rounded-sm',
-              isCTWin
-                ? 'bg-blue-500/20 text-blue-400'
+      {/* Line 1: Round number + score + icons */}
+      <div className="flex items-center gap-1 w-full">
+        <span
+          className={cn(
+            'font-bold text-xs w-5 text-right tabular-nums shrink-0',
+            isActive
+              ? isCTWin
+                ? 'text-blue-400'
                 : isTWin
-                  ? 'bg-yellow-500/20 text-yellow-400'
-                  : 'text-muted-foreground',
-            )}
-          >
-            {isCTWin ? 'CT' : isTWin ? 'T' : ''}
-          </span>
-
-          <div className="flex-1" />
-
-          {/* Kill counts */}
-          {killData && (
-            <span className="text-[9px] tabular-nums shrink-0">
-              <span className="text-blue-400/70">{killData.ctKills}K</span>
-              <span className="text-muted-foreground/40">-</span>
-              <span className="text-yellow-400/70">{killData.tKills}K</span>
-            </span>
+                  ? 'text-yellow-400'
+                  : 'text-primary'
+              : 'text-muted-foreground',
           )}
+        >
+          {roundNumber}
+        </span>
 
-          {/* Score */}
-          <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">
-            {round.scoreCT}
-            <span className="text-muted-foreground/40">:</span>
-            {round.scoreT}
+        {round && (
+          <>
+            <span className="text-[10px] tabular-nums text-muted-foreground/70 shrink-0">
+              {round.scoreCT}:{round.scoreT}
+            </span>
+
+            <div className="flex-1" />
+
+            {icon && round.winReason && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className={
+                      isCTWin
+                        ? 'text-blue-400'
+                        : isTWin
+                          ? 'text-yellow-400'
+                          : 'text-muted-foreground'
+                    }
+                  >
+                    {icon}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  {WIN_REASON_LABEL[round.winReason]}
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {hadBombPlant && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Bomb
+                    className={cn(
+                      'size-2.5 shrink-0',
+                      hadBombDefuse
+                        ? 'text-blue-400'
+                        : hadBombExplode
+                          ? 'text-red-400'
+                          : 'text-yellow-400/60',
+                    )}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  {hadBombDefuse
+                    ? 'Planted & Defused'
+                    : hadBombExplode
+                      ? 'Planted & Exploded'
+                      : 'Bomb planted'}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Line 2: Kill counts */}
+      {round && killData && (
+        <div className="flex items-center pl-6">
+          <span className="text-[10px] tabular-nums shrink-0">
+            <span className="text-blue-400/70">{killData.ctKills}</span>
+            <span className="text-muted-foreground/40"> - </span>
+            <span className="text-yellow-400/70">{killData.tKills}</span>
           </span>
-        </>
+        </div>
       )}
     </button>
   );

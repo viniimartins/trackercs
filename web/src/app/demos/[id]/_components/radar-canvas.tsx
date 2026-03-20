@@ -22,9 +22,10 @@ interface RadarCanvasProps {
   damages?: DamageEvent[];
   heatmap?: HeatmapData | null;
   footer?: React.ReactNode;
+  overlay?: React.ReactNode;
 }
 
-export function RadarCanvas({ mapName, frame, grenades, kills, damages, heatmap, footer }: RadarCanvasProps) {
+export function RadarCanvas({ mapName, frame, grenades, kills, damages, heatmap, footer, overlay }: RadarCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { render } = useRadarRenderer();
   const isFullscreen = useRadarFullscreenStore((s) => s.isFullscreen);
@@ -127,7 +128,7 @@ export function RadarCanvas({ mapName, frame, grenades, kills, damages, heatmap,
   );
 
   return (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="w-full h-full flex items-center justify-start">
       <div className="max-w-full max-h-full flex flex-col">
         <div className="relative flex-1 min-h-0 aspect-square">
           <canvas
@@ -144,6 +145,7 @@ export function RadarCanvas({ mapName, frame, grenades, kills, damages, heatmap,
             {isFullscreen ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
           </button>
           <RadarLayerControls />
+          {overlay}
         </div>
         {footer}
       </div>

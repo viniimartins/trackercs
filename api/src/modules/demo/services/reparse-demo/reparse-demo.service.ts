@@ -2,7 +2,6 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import type { DemoRoundDto } from '../../dto/demo-round.dto.js';
 import { DemoParserProvider } from '../../providers/demo-parser.provider.js';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data', 'demos');
@@ -57,9 +56,7 @@ export class ReparseDemoService {
       );
     }
 
-    const rounds: DemoRoundDto[] = JSON.parse(
-      fs.readFileSync(roundsPath, 'utf-8'),
-    );
+    const rounds = this.parser.parseRounds(demoBuffer);
 
     this.logger.log(`Reparsing events for demo ${id}...`);
 

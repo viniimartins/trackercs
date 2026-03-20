@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import type { PlayerStats } from '@/modules/demo/model';
 
 type NumericStatsKey = {
@@ -51,16 +52,16 @@ export function StatsTable({ stats }: StatsTableProps) {
         <TabsTrigger value="advanced">Advanced</TabsTrigger>
       </TabsList>
       <TabsContent value="overview">
-        <StatsCards stats={stats} columns={OVERVIEW_COLUMNS} />
+        <StatsInlineTable stats={stats} columns={OVERVIEW_COLUMNS} />
       </TabsContent>
       <TabsContent value="advanced">
-        <StatsCards stats={stats} columns={ADVANCED_COLUMNS} />
+        <StatsInlineTable stats={stats} columns={ADVANCED_COLUMNS} />
       </TabsContent>
     </Tabs>
   );
 }
 
-function StatsCards({ stats, columns }: { stats: PlayerStats[]; columns: Column[] }) {
+function StatsInlineTable({ stats, columns }: { stats: PlayerStats[]; columns: Column[] }) {
   const [sortKey, setSortKey] = useState<NumericStatsKey>(columns[0].key);
   const [sortDesc, setSortDesc] = useState(true);
 
@@ -110,25 +111,28 @@ function StatsCards({ stats, columns }: { stats: PlayerStats[]; columns: Column[
   const isBestKey = (player: PlayerStats, key: NumericStatsKey) =>
     !invertedKeys.has(key) && player[key] === bestInTeam[player.team]?.[key] && player[key] > 0;
 
-  return (
-    <div className="flex flex-col gap-3 p-2">
-      {/* Sort labels */}
-      <div className="flex flex-wrap gap-1 px-1">
-        {columns.map((col) => (
-          <button
-            key={col.key}
-            onClick={() => handleSort(col.key)}
-            className={`text-[9px] uppercase px-1.5 py-0.5 rounded transition-colors ${
-              sortKey === col.key
-                ? 'text-primary bg-primary/10 font-bold'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {col.label}
-          </button>
-        ))}
-      </div>
+  const headerRow = (
+    <div className="flex items-center gap-0 px-2 py-1">
+      <span className="text-[9px] uppercase text-muted-foreground w-20 shrink-0 truncate" />
+      {columns.map((col) => (
+        <button
+          key={col.key}
+          onClick={() => handleSort(col.key)}
+          className={cn(
+            'text-[9px] uppercase text-right flex-1 min-w-0 px-0.5',
+            sortKey === col.key
+              ? 'text-foreground font-semibold'
+              : 'text-muted-foreground hover:text-foreground/70',
+          )}
+        >
+          {col.label}
+        </button>
+      ))}
+    </div>
+  );
 
+  return (
+    <div className="flex flex-col gap-1 p-2">
       {/* CT team */}
       <div>
         <div className="flex items-center gap-2 px-1 py-1.5">
@@ -137,9 +141,10 @@ function StatsCards({ stats, columns }: { stats: PlayerStats[]; columns: Column[
           </span>
           <div className="flex-1 h-px bg-border/50" />
         </div>
-        <div className="p-1.5 space-y-1">
+        {headerRow}
+        <div className="flex flex-col">
           {ctPlayers.map((player) => (
-            <PlayerStatCard
+            <PlayerRow
               key={player.steamId}
               player={player}
               columns={columns}
@@ -158,9 +163,10 @@ function StatsCards({ stats, columns }: { stats: PlayerStats[]; columns: Column[
           </span>
           <div className="flex-1 h-px bg-border/50" />
         </div>
-        <div className="p-1.5 space-y-1">
+        {headerRow}
+        <div className="flex flex-col">
           {tPlayers.map((player) => (
-            <PlayerStatCard
+            <PlayerRow
               key={player.steamId}
               player={player}
               columns={columns}
@@ -174,7 +180,7 @@ function StatsCards({ stats, columns }: { stats: PlayerStats[]; columns: Column[
   );
 }
 
-function PlayerStatCard({
+function PlayerRow({
   player,
   columns,
   isBest,
@@ -186,30 +192,29 @@ function PlayerStatCard({
   sortKey: NumericStatsKey;
 }) {
   return (
-    <div className="rounded px-2 py-1.5 hover:bg-muted/40 transition-colors">
-      <p className="text-xs font-bold mb-1 truncate">{player.name}</p>
-      <div className="grid grid-cols-4 gap-x-2 gap-y-0.5">
-        {columns.map((col) => {
-          const value = player[col.key];
-          const formatted = col.format ? col.format(value) : String(value);
-          const best = isBest(player, col.key);
+    <div className="flex items-center gap-0 px-2 py-1 rounded hover:bg-muted/40">
+      <span className="text-xs font-bold w-20 shrink-0 truncate">{player.name}</span>
+      {columns.map((col) => {
+        const value = player[col.key];
+        const formatted = col.format ? col.format(value) : String(value);
+        const best = isBest(player, col.key);
 
-          return (
-            <div key={col.key}>
-              <p className={`text-[9px] uppercase leading-tight ${
-                sortKey === col.key ? 'text-primary font-semibold' : 'text-muted-foreground'
-              }`}>
-                {col.label}
-              </p>
-              <p className={`text-xs tabular-nums ${
-                best ? 'text-primary font-bold' : 'font-semibold'
-              }`}>
-                {formatted}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+        return (
+          <span
+            key={col.key}
+            className={cn(
+              'text-[10px] tabular-nums text-right flex-1 min-w-0 px-0.5',
+              best
+                ? 'text-foreground font-bold'
+                : sortKey === col.key
+                  ? 'text-foreground/80 font-medium'
+                  : 'text-muted-foreground',
+            )}
+          >
+            {formatted}
+          </span>
+        );
+      })}
     </div>
   );
 }
