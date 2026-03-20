@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Bomb as BombIcon, Crosshair } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { getWeaponImagePath } from '../_utils/format-weapon';
 import { usePlaybackStore } from '@/stores/playback-store';
 import { useEventHighlightStore } from '@/stores/event-highlight-store';
@@ -63,6 +64,27 @@ export function RoundEventFeed({
 }: RoundEventFeedProps) {
   const setFrameIndex = usePlaybackStore((s) => s.setFrameIndex);
   const setHighlight = useEventHighlightStore((s) => s.setHighlight);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  const handleMouseEnter = useCallback(
+    (index: number, entry: FeedEntry) => {
+      setHoveredIndex(index);
+      const pos = getEventPosition(entry);
+      if (pos) {
+        setHighlight({
+          gameX: pos.x,
+          gameY: pos.y,
+          attackerSteamId: entry.type === 'kill' ? entry.data.attackerSteamId : undefined,
+        });
+      }
+    },
+    [setHighlight],
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredIndex(null);
+    setHighlight(null);
+  }, [setHighlight]);
 
   const teamBySteamId = useMemo(() => {
     const map = new Map<string, 'CT' | 'T'>();
@@ -92,28 +114,42 @@ export function RoundEventFeed({
 
       const pos = getEventPosition(entry);
       if (pos) {
-        setHighlight({ gameX: pos.x, gameY: pos.y });
+        setHighlight({
+          gameX: pos.x,
+          gameY: pos.y,
+          attackerSteamId: entry.type === 'kill' ? entry.data.attackerSteamId : undefined,
+        });
       }
     },
     [startTick, setFrameIndex, setHighlight],
   );
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-2 py-1 space-y-0.5">
-      {entries.length === 0 ? (
-        <p className="text-[10px] text-muted-foreground italic py-2">No events yet</p>
-      ) : (
-        entries.map((entry, i) => (
-          <FeedRow
-            key={`${entry.type}-${entry.tick}-${i}`}
-            entry={entry}
-            teamBySteamId={teamBySteamId}
-            time={formatRoundTime(entry.tick, startTick, tickRate)}
-            onClick={() => handleEventClick(entry)}
-          />
-        ))
-      )}
-    </div>
+    <ScrollArea className="flex-1 min-h-0 overflow-hidden">
+      <div className="px-2 py-1 space-y-0.5">
+        {entries.length === 0 ? (
+          <p className="text-[10px] text-muted-foreground italic py-2">No events yet</p>
+        ) : (
+          entries.map((entry, i) => (
+            <div
+              key={`${entry.type}-${entry.tick}-${i}`}
+              onMouseEnter={() => handleMouseEnter(i, entry)}
+              onMouseLeave={handleMouseLeave}
+            >
+              <FeedRow
+                entry={entry}
+                teamBySteamId={teamBySteamId}
+                time={formatRoundTime(entry.tick, startTick, tickRate)}
+                onClick={() => handleEventClick(entry)}
+              />
+              {hoveredIndex === i && entry.type === 'kill' && (
+                <KillTooltip kill={entry.data} teamBySteamId={teamBySteamId} time={formatRoundTime(entry.tick, startTick, tickRate)} />
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </ScrollArea>
   );
 }
 
@@ -219,5 +255,66 @@ function BombContent({ bomb, teamBySteamId }: { bomb: BombEvent; teamBySteamId: 
         {bomb.action}
       </span>
     </>
+  );
+}
+
+const BADGE_LABELS: Record<string, string> = {
+  HS: 'Headshot',
+  WB: 'Wallbang',
+  NS: 'Noscope',
+  SM: 'Thru Smoke',
+  BL: 'Blind Kill',
+};
+
+function KillTooltip({
+  kill,
+  teamBySteamId,
+  time,
+}: {
+  kill: KillEvent;
+  teamBySteamId: Map<string, 'CT' | 'T'>;
+  time: string;
+}) {
+  const badges: string[] = [];
+  if (kill.headshot) badges.push('HS');
+  if (kill.wallbang) badges.push('WB');
+  if (kill.noscope) badges.push('NS');
+  if (kill.thrusmoke) badges.push('SM');
+  if (kill.blindKill) badges.push('BL');
+
+  return (
+    <div className="bg-popover/95 backdrop-blur-sm rounded-md border border-white/10 px-2.5 py-2 text-[10px] ml-8 mb-0.5 space-y-1.5 shadow-lg">
+      <div className="flex items-center gap-1.5">
+        <span className={`font-semibold ${teamColor(kill.attackerSteamId, teamBySteamId)}`}>
+          {kill.attackerName}
+        </span>
+        <span className="text-muted-foreground">&rarr;</span>
+        <span className={`font-semibold ${teamColor(kill.victimSteamId, teamBySteamId)}`}>
+          {kill.victimName}
+        </span>
+        <span className="text-muted-foreground ml-auto tabular-nums">{time}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <img
+          src={getWeaponImagePath(kill.weapon)}
+          alt={kill.weapon}
+          className="h-4 w-auto max-w-12 brightness-0 invert opacity-70"
+          onError={(e) => { e.currentTarget.src = '/weapons/knife.png'; }}
+        />
+        <span className="text-muted-foreground capitalize">{kill.weapon}</span>
+      </div>
+      {badges.length > 0 && (
+        <div className="flex gap-1 flex-wrap">
+          {badges.map((b) => (
+            <span
+              key={b}
+              className="px-1 py-0.5 rounded bg-white/10 text-[9px] font-medium text-red-400"
+            >
+              {BADGE_LABELS[b]}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
