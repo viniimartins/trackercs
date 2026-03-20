@@ -2,13 +2,25 @@
   "name": "tracker-cs",
   "private": true,
   "workspaces": [
-    "frontend",
-    "backend"
+    "web",
+    "api"
   ],
   "scripts": {
-    "dev:frontend": "npm run start:dev --workspace=frontend",
-    "dev:backend": "npm run start:dev --workspace=backend",
-    "build:frontend": "npm run build --workspace=frontend",
-    "build:backend": "npm run build --workspace=backend"
+    "dev:web": "npm run dev --workspace=web",
+    "dev:api": "npm run start:dev --workspace=api",
+    "build:web": "npm run build --workspace=web",
+    "build:api": "npm run build --workspace=api",
+    "lint:web": "npm run lint --workspace=web",
+    "lint:api": "npm run lint --workspace=api",
+    "test:api": "npm run test --workspace=api",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@nestjs/platform-express": "^11.0.1"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7"
   }
 }
